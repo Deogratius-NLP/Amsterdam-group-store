@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Organic Sprout / Leaf Motif -->
+  <path d="M50 15C50 15 32 30 32 55C32 75 45 85 50 85C55 85 68 75 68 55C68 30 50 15 50 15Z" fill="#7BAE27"/>
+  <path d="M50 15C50 15 62 28 62 48C62 65 53 78 50 85C50 85 50 15 50 15Z" fill="#8CE033"/>
+  <path d="M50 85V40" stroke="#31572C" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="50" cy="85" r="4" fill="#31572C"/>
+</svg>
