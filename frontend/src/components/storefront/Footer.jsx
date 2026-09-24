@@ -1,5 +1,6 @@
 import React from 'react';
-import { MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { MessageCircle, Lock } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 import { AMSTERDAM_WHATSAPP_LINK } from '../../utils/constants';
 
@@ -68,6 +69,9 @@ export default function Footer() {
               </li>
               <li>
                 <a href="#orders" className="hover:text-amsterdam-olive transition-colors">Order Tracking Help</a>
+              </li>
+              <li>
+                <Link to="/admin/login" className="hover:text-amsterdam-olive transition-colors">Staff & Admin Portal</Link>
               </li>
             </ul>
           </div>
@@ -140,10 +144,14 @@ export default function Footer() {
         {/* Bottom Copyright & Tanzanian Registration */}
         <div className="pt-8 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
           <p>© {new Date().getFullYear()} Amsterdam Group (Tanzania). All rights reserved.</p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap items-center gap-6">
             <a href="#privacy" className="hover:text-gray-600 transition-colors">Privacy Policy</a>
             <a href="#terms" className="hover:text-gray-600 transition-colors">Terms of Service</a>
             <a href="#compliance" className="hover:text-gray-600 transition-colors">Veterinary Standards</a>
+            <Link to="/admin/login" className="hover:text-amsterdam-olive transition-colors font-medium text-gray-400 flex items-center gap-1">
+              <Lock className="w-3 h-3" />
+              <span>Staff Portal</span>
+            </Link>
           </div>
         </div>
 

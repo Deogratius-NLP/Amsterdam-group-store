@@ -2,6 +2,14 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/:match*",
+      "destination": "https://amsterdam-group-store-production.up.railway.app/api/:match*"
+    },
+    {
+      "source": "/static/:match*",
+      "destination": "https://amsterdam-group-store-production.up.railway.app/static/:match*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

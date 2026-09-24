@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ShieldCheck, Lock, Mail, AlertCircle, Loader2, Store } from 'lucide-react';
 
@@ -8,8 +8,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState('Admin@Amsterdam2026!');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { isAuthenticated, login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = location.state?.from?.pathname || '/admin';
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, from]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,7 +26,7 @@ export default function LoginPage() {
       setLoading(true);
       setError('');
       await login(email, password);
-      navigate('/admin');
+      navigate(from, { replace: true });
     } catch (err) {
       console.error('Login error:', err);
       const detail = err.response?.data?.detail || 'Invalid email or password. Please try again.';

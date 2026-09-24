@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, MessageCircle, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Menu, X, MessageCircle, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../../context/SettingsContext';
 import { AMSTERDAM_WHATSAPP_LINK } from '../../utils/constants';
@@ -50,15 +50,6 @@ export default function Header() {
               <MessageCircle className="w-4 h-4 text-white" />
               <span>WhatsApp Support</span>
             </a>
-
-            <Link
-              to="/admin/login"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-full bg-black/20 hover:bg-black/30 text-white font-semibold text-xs transition-colors border border-white/20"
-              title="Staff & Admin Portal"
-            >
-              <ShieldCheck className="w-4 h-4 text-white/80" />
-              <span>Admin</span>
-            </Link>
           </div>
 
           {/* Mobile hamburger */}
@@ -119,17 +110,6 @@ export default function Header() {
               </span>
               <ChevronRight className="w-4 h-4" />
             </a>
-            <Link
-              to="/admin/login"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center justify-between px-3 py-2 rounded-lg bg-black/20 text-white text-sm font-semibold"
-            >
-              <span className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4" />
-                Admin Portal
-              </span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
           </div>
         </div>
       )}
