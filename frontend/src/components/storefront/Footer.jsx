@@ -46,9 +46,6 @@ export default function Footer() {
               <li>
                 <a href="#contact-section" className="hover:text-amsterdam-olive transition-colors">Contact Us</a>
               </li>
-              <li>
-                <a href="#innovations" className="hover:text-amsterdam-olive transition-colors">Innovation Lab</a>
-              </li>
             </ul>
           </div>
 

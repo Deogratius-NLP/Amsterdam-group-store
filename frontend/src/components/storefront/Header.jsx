@@ -31,10 +31,12 @@ export default function Header() {
             <a href="#coming-soon-section" className="text-sm font-semibold text-white/90 hover:text-white transition-colors">
               Coming Soon
             </a>
-            <a href="#contact-section" className="text-sm font-semibold text-white/90 hover:text-white transition-colors">
-              Get in Touch
-            </a>
-            <a href="#footer-section" className="text-sm font-semibold text-white/90 hover:text-white transition-colors">
+            <a
+              href="https://www.amsterdamgroup.co.tz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-white/90 hover:text-white transition-colors"
+            >
               About
             </a>
           </nav>
@@ -91,11 +93,13 @@ export default function Header() {
             Coming Soon
           </a>
           <a
-            href="#contact-section"
+            href="https://www.amsterdamgroup.co.tz"
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={() => setMobileOpen(false)}
             className="block px-3 py-2 rounded-lg text-base font-medium text-white/90 hover:bg-white/10"
           >
-            Get in Touch
+            About
           </a>
           <div className="pt-2 border-t border-white/10 flex flex-col gap-2">
             <a
