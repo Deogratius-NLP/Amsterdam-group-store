@@ -1,6 +1,6 @@
 from app.models.admin_user import AdminUser
 from app.models.customer import Customer
-from app.models.product import Product
+from app.models.product import Product, ProductPackage
 from app.models.product_image import ProductImage
 from app.models.order import Order
 from app.models.order_item import OrderItem
@@ -11,6 +11,7 @@ __all__ = [
     "AdminUser",
     "Customer",
     "Product",
+    "ProductPackage",
     "ProductImage",
     "Order",
     "OrderItem",

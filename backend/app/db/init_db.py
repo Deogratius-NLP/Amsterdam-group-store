@@ -4,7 +4,8 @@ from app.db.session import engine, Base
 from app.core.config import settings
 from app.core.security import get_password_hash
 from app.models.admin_user import AdminUser
-from app.models.product import Product, ProductPackage, ProductImage
+from app.models.product import Product, ProductPackage
+from app.models.product_image import ProductImage
 from app.models.inventory_transaction import InventoryTransaction
 from app.models.system_setting import SystemSetting
 
@@ -63,6 +64,10 @@ def init_db(db: Session) -> None:
         db.commit()
         db.refresh(admin)
         logger.info(f"Default admin created: {settings.ADMIN_DEFAULT_EMAIL}")
+    elif not admin.is_active:
+        admin.is_active = True
+        db.commit()
+        logger.info(f"Re-activated admin user: {settings.ADMIN_DEFAULT_EMAIL}")
 
     # 3. Seed Sample Products if table empty
     existing_product_count = db.query(Product).count()
@@ -367,27 +372,31 @@ def init_db(db: Session) -> None:
         logger.info("Products seeded successfully with multi-image carousels and inventory logs.")
 
     # 4. Seed sample packages for multi-pack products if none exist yet
-    if db.query(ProductPackage).count() == 0:
-        logger.info("Seeding initial product packages...")
-        all_prods = db.query(Product).all()
-        for prod in all_prods:
-            pname = prod.name.lower()
-            if "chick" in pname or "vita-chick" in pname:
-                db.add_all([
-                    ProductPackage(product_id=prod.id, package_name="30g", retail_price=3500.00, wholesale_price=3000.00, display_order=0),
-                    ProductPackage(product_id=prod.id, package_name="100g", retail_price=10000.00, wholesale_price=8500.00, display_order=1),
-                    ProductPackage(product_id=prod.id, package_name="250g", retail_price=22000.00, wholesale_price=18500.00, display_order=2),
-                ])
-            elif "vitamix" in pname or "egg max" in pname:
-                db.add_all([
-                    ProductPackage(product_id=prod.id, package_name="100g", retail_price=4000.00, wholesale_price=3400.00, display_order=0),
-                    ProductPackage(product_id=prod.id, package_name="250g", retail_price=9000.00, wholesale_price=7650.00, display_order=1),
-                    ProductPackage(product_id=prod.id, package_name="1kg", retail_price=prod.retail_price or 25000.00, wholesale_price=prod.wholesale_price or 21250.00, display_order=2),
-                ])
-            elif "vital-amino" in pname or "layer" in pname:
-                db.add_all([
-                    ProductPackage(product_id=prod.id, package_name="500g", retail_price=15000.00, wholesale_price=12500.00, display_order=0),
-                    ProductPackage(product_id=prod.id, package_name="1kg", retail_price=prod.retail_price or 28000.00, wholesale_price=prod.wholesale_price or 23800.00, display_order=1),
-                ])
-        db.commit()
-        logger.info("Product packages seeded successfully.")
+    try:
+        if db.query(ProductPackage).count() == 0:
+            logger.info("Seeding initial product packages...")
+            all_prods = db.query(Product).all()
+            for prod in all_prods:
+                pname = prod.name.lower()
+                if "chick" in pname or "vita-chick" in pname:
+                    db.add_all([
+                        ProductPackage(product_id=prod.id, package_name="30g", retail_price=3500.00, wholesale_price=3000.00, display_order=0),
+                        ProductPackage(product_id=prod.id, package_name="100g", retail_price=10000.00, wholesale_price=8500.00, display_order=1),
+                        ProductPackage(product_id=prod.id, package_name="250g", retail_price=22000.00, wholesale_price=18500.00, display_order=2),
+                    ])
+                elif "vitamix" in pname or "egg max" in pname:
+                    db.add_all([
+                        ProductPackage(product_id=prod.id, package_name="100g", retail_price=4000.00, wholesale_price=3400.00, display_order=0),
+                        ProductPackage(product_id=prod.id, package_name="250g", retail_price=9000.00, wholesale_price=7650.00, display_order=1),
+                        ProductPackage(product_id=prod.id, package_name="1kg", retail_price=prod.retail_price or 25000.00, wholesale_price=prod.wholesale_price or 21250.00, display_order=2),
+                    ])
+                elif "vital-amino" in pname or "layer" in pname:
+                    db.add_all([
+                        ProductPackage(product_id=prod.id, package_name="500g", retail_price=15000.00, wholesale_price=12500.00, display_order=0),
+                        ProductPackage(product_id=prod.id, package_name="1kg", retail_price=prod.retail_price or 28000.00, wholesale_price=prod.wholesale_price or 23800.00, display_order=1),
+                    ])
+            db.commit()
+            logger.info("Product packages seeded successfully.")
+    except Exception as e:
+        logger.warning(f"Product package seeding skipped: {e}")
+        db.rollback()

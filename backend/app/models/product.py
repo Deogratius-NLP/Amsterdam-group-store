@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Column, String, Integer, Numeric, Boolean, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db.session import Base
+from app.models.product_image import ProductImage
 
 
 class Product(Base):

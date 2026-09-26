@@ -1,5 +1,13 @@
 from app.schemas.auth import LoginRequest, TokenResponse, AdminUserOut
-from app.schemas.product import ProductOut, ProductDetailOut, ProductCreate, ProductUpdate, ProductImageOut
+from app.schemas.product import (
+    ProductOut,
+    ProductDetailOut,
+    ProductCreate,
+    ProductUpdate,
+    ProductImageOut,
+    ProductPackageOut,
+    ProductPackageCreate,
+)
 from app.schemas.order import CreateOrderRequest, OrderOut, OrderItemOut, OrderConfirmationOut, UpdateOrderStatusRequest
 from app.schemas.customer import CustomerOut, CustomerDetailOut
 from app.schemas.inventory import InventoryAdjustmentRequest, InventoryTransactionOut, InventoryItemOut
@@ -14,6 +22,8 @@ __all__ = [
     "ProductCreate",
     "ProductUpdate",
     "ProductImageOut",
+    "ProductPackageOut",
+    "ProductPackageCreate",
     "CreateOrderRequest",
     "OrderOut",
     "OrderItemOut",

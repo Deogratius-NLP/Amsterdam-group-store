@@ -29,7 +29,14 @@ export default function LoginPage() {
       navigate(from, { replace: true });
     } catch (err) {
       console.error('Login error:', err);
-      const detail = err.response?.data?.detail || 'Invalid email or password. Please try again.';
+      let detail = 'Invalid email or password. Please try again.';
+      if (err.response?.status >= 500) {
+        detail = 'Server is currently starting up or experiencing an issue. Please wait 10 seconds and try again.';
+      } else if (err.response?.data?.detail) {
+        detail = err.response.data.detail;
+      } else if (!err.response) {
+        detail = 'Cannot connect to backend server. Please check your internet connection.';
+      }
       setError(detail);
     } finally {
       setLoading(false);

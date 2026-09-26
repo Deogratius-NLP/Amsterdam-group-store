@@ -1,4 +1,5 @@
 import os
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +8,8 @@ from app.core.config import settings
 from app.db.session import SessionLocal
 from app.db.init_db import init_db
 from app.api.api_router import api_router
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -18,6 +21,8 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         init_db(db)
+    except Exception as e:
+        logger.error(f"Error during DB initialization: {e}", exc_info=True)
     finally:
         db.close()
     

@@ -13,7 +13,8 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/login", response_model=TokenResponse)
 def login(data: LoginRequest, db: Session = Depends(get_db)):
-    admin = db.query(AdminUser).filter(AdminUser.email == data.email).first()
+    email_clean = data.email.strip().lower()
+    admin = db.query(AdminUser).filter(AdminUser.email.ilike(email_clean)).first()
     if not admin or not verify_password(data.password, admin.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -60,14 +61,16 @@ def update_security_credentials(
         )
 
     # If updating email
-    if data.new_email and data.new_email.lower() != current_admin.email.lower():
-        existing = db.query(AdminUser).filter(AdminUser.email == data.new_email.lower()).first()
-        if existing and existing.id != current_admin.id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="An admin account with this email address already exists"
-            )
-        current_admin.email = data.new_email.lower()
+    if data.new_email:
+        new_email_clean = data.new_email.strip().lower()
+        if new_email_clean != current_admin.email.lower():
+            existing = db.query(AdminUser).filter(AdminUser.email.ilike(new_email_clean)).first()
+            if existing and existing.id != current_admin.id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="An admin account with this email address already exists"
+                )
+            current_admin.email = new_email_clean
 
     # If updating password
     if data.new_password:
