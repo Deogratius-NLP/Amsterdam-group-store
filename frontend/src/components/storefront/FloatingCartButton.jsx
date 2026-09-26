@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { formatTsh } from '../../utils/currency';
