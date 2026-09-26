@@ -11,10 +11,10 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.api.deps import get_current_admin
 from app.models.admin_user import AdminUser
-from app.models.product import Product
+from app.models.product import Product, ProductPackage
 from app.models.product_image import ProductImage
 from app.models.inventory_transaction import InventoryTransaction
-from app.schemas.product import ProductOut, ProductDetailOut, ProductCreate, ProductUpdate
+from app.schemas.product import ProductOut, ProductDetailOut, ProductCreate, ProductUpdate, ReorderProductsRequest
 from app.api.endpoints.products import _to_product_out
 
 router = APIRouter(prefix="/admin/products", tags=["Admin Products"])
@@ -139,6 +139,18 @@ def create_product(
         )
         db.add(p_img)
 
+    # Add packages if provided
+    for idx, pkg_data in enumerate(data.packages or []):
+        pkg = ProductPackage(
+            product_id=product.id,
+            package_name=pkg_data.package_name.strip(),
+            retail_price=pkg_data.retail_price,
+            wholesale_price=pkg_data.wholesale_price,
+            display_order=pkg_data.display_order if pkg_data.display_order is not None else idx,
+            is_active=pkg_data.is_active
+        )
+        db.add(pkg)
+
     # Initial inventory log if stock > 0
     if product.stock_quantity > 0:
         tx = InventoryTransaction(
@@ -155,6 +167,19 @@ def create_product(
     db.commit()
     db.refresh(product)
     return _to_product_out(product)
+
+
+@router.put("/reorder", response_model=List[ProductOut])
+def reorder_products(
+    data: ReorderProductsRequest,
+    db: Session = Depends(get_db),
+    admin: AdminUser = Depends(get_current_admin)
+):
+    for index, prod_id in enumerate(data.product_ids):
+        db.query(Product).filter(Product.id == prod_id).update({"display_order": index})
+    db.commit()
+    products = db.query(Product).order_by(Product.display_order, Product.created_at.desc()).all()
+    return [_to_product_out(p) for p in products]
 
 
 @router.get("/{product_id}", response_model=ProductDetailOut)
@@ -182,6 +207,7 @@ def update_product(
 
     update_fields = data.model_dump(exclude_unset=True)
     images_data = update_fields.pop("images", None)
+    packages_data = update_fields.pop("packages", None)
 
     # Sync price and retail_price if one was updated
     if "retail_price" in update_fields and "price" not in update_fields:
@@ -219,6 +245,20 @@ def update_product(
                 is_primary=img.get("is_primary", idx == 0)
             )
             db.add(p_img)
+
+    if packages_data is not None:
+        # Replace packages
+        db.query(ProductPackage).filter(ProductPackage.product_id == product.id).delete()
+        for idx, pkg_dict in enumerate(packages_data):
+            pkg = ProductPackage(
+                product_id=product.id,
+                package_name=pkg_dict["package_name"].strip(),
+                retail_price=pkg_dict["retail_price"],
+                wholesale_price=pkg_dict["wholesale_price"],
+                display_order=pkg_dict.get("display_order", idx),
+                is_active=pkg_dict.get("is_active", True)
+            )
+            db.add(pkg)
 
     db.commit()
     db.refresh(product)

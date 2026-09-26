@@ -91,7 +91,9 @@ export default function CartModal({ isOpen, onClose, onProceedToCheckout }) {
             <div className="space-y-4">
               {cartItems.map((item) => {
                 const isWholesale = (item.pricingMode || '').toUpperCase() === 'WHOLESALE';
-                const unitPrice = getItemPrice(item.product, item.pricingMode);
+                const unitPrice = item.unitPrice !== undefined 
+                  ? item.unitPrice 
+                  : getItemPrice(item.product, item.pricingMode, item.package_id);
                 const subtotal = unitPrice * item.quantity;
                 const wholesaleMin = item.product.wholesale_minimum_quantity || 10;
                 const minAllowed = isWholesale ? wholesaleMin : 1;
@@ -103,7 +105,7 @@ export default function CartModal({ isOpen, onClose, onProceedToCheckout }) {
 
                 return (
                   <div
-                    key={`${item.product.id}-${item.pricingMode}`}
+                    key={`${item.product.id}-${item.pricingMode}-${item.package_id || 'default'}`}
                     className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAFCF8] border border-gray-100 hover:border-amsterdam-lime/40 transition-colors"
                   >
                     {/* Thumbnail & Info */}
@@ -134,6 +136,13 @@ export default function CartModal({ isOpen, onClose, onProceedToCheckout }) {
                             {isWholesale ? 'Wholesale' : 'Retail'}
                           </span>
                         </div>
+                        {item.package_name && (
+                          <div className="mb-1">
+                            <span className="inline-block px-2 py-0.5 rounded-md bg-amsterdam-muted text-amsterdam-olive-dark text-[11px] font-bold">
+                              {item.package_name}
+                            </span>
+                          </div>
+                        )}
                         <p className="text-xs text-gray-500">
                           {formatTsh(unitPrice)} per unit
                         </p>
@@ -152,13 +161,12 @@ export default function CartModal({ isOpen, onClose, onProceedToCheckout }) {
                         <button
                           onClick={() => {
                             if (item.quantity <= minAllowed) {
-                              // If at min allowed in retail, decrease removes; in wholesale, prompts or clamps
                               if (!isWholesale && item.quantity === 1) {
-                                removeFromCart(item.product.id, item.pricingMode);
+                                removeFromCart(item.product.id, item.pricingMode, item.package_id);
                               }
                               return;
                             }
-                            updateQuantity(item.product.id, item.pricingMode, item.quantity - 1);
+                            updateQuantity(item.product.id, item.pricingMode, item.quantity - 1, item.package_id);
                           }}
                           disabled={isWholesale && item.quantity <= minAllowed}
                           className="w-7 h-7 rounded-full bg-gray-50 hover:bg-gray-200 text-amsterdam-dark flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -172,7 +180,7 @@ export default function CartModal({ isOpen, onClose, onProceedToCheckout }) {
                         <button
                           onClick={() => {
                             if (item.quantity < maxAvailable) {
-                              updateQuantity(item.product.id, item.pricingMode, item.quantity + 1);
+                              updateQuantity(item.product.id, item.pricingMode, item.quantity + 1, item.package_id);
                             }
                           }}
                           disabled={item.quantity >= maxAvailable}
@@ -192,7 +200,7 @@ export default function CartModal({ isOpen, onClose, onProceedToCheckout }) {
 
                       {/* Delete item button */}
                       <button
-                        onClick={() => removeFromCart(item.product.id, item.pricingMode)}
+                        onClick={() => removeFromCart(item.product.id, item.pricingMode, item.package_id)}
                         className="w-8 h-8 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
                         title="Remove item"
                         aria-label="Remove item"

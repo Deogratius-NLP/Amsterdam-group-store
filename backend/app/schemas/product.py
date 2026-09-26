@@ -14,6 +14,17 @@ class ProductImageOut(BaseModel):
     is_primary: bool
 
 
+class ProductPackageOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    package_name: str
+    retail_price: Decimal
+    wholesale_price: Decimal
+    display_order: int
+    is_active: bool
+
+
 class ProductOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -34,6 +45,7 @@ class ProductOut(BaseModel):
     display_order: int
     primary_image_url: Optional[str] = None
     images: List[ProductImageOut] = []
+    packages: List[ProductPackageOut] = []
     created_at: datetime
     updated_at: datetime
 
@@ -47,6 +59,15 @@ class ProductImageCreate(BaseModel):
     alt_text: Optional[str] = None
     display_order: int = 0
     is_primary: bool = False
+
+
+class ProductPackageCreate(BaseModel):
+    id: Optional[str] = None
+    package_name: str
+    retail_price: Decimal = Field(..., gt=0)
+    wholesale_price: Decimal = Field(..., gt=0)
+    display_order: int = 0
+    is_active: bool = True
 
 
 class ProductCreate(BaseModel):
@@ -65,6 +86,7 @@ class ProductCreate(BaseModel):
     is_coming_soon: bool = False
     display_order: int = 0
     images: List[ProductImageCreate] = []
+    packages: List[ProductPackageCreate] = []
 
 
 class ProductUpdate(BaseModel):
@@ -83,3 +105,8 @@ class ProductUpdate(BaseModel):
     is_coming_soon: Optional[bool] = None
     display_order: Optional[int] = None
     images: Optional[List[ProductImageCreate]] = None
+    packages: Optional[List[ProductPackageCreate]] = None
+
+
+class ReorderProductsRequest(BaseModel):
+    product_ids: List[str] = Field(..., description="Ordered list of product IDs from top to bottom")

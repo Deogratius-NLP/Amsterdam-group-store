@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const CartContext = createContext(null);
 
@@ -27,24 +27,36 @@ export function CartProvider({ children }) {
     }
   }, [cartItems]);
 
-  const getItemPrice = (product, pricingMode) => {
+  const getItemPrice = (product, pricingMode, selectedPackage = null) => {
     const isWholesale = (pricingMode || '').toUpperCase() === 'WHOLESALE';
+    if (selectedPackage) {
+      if (isWholesale) {
+        return parseFloat(selectedPackage.wholesale_price) || parseFloat(selectedPackage.retail_price) || 0;
+      }
+      return parseFloat(selectedPackage.retail_price) || 0;
+    }
     if (isWholesale) {
       return parseFloat(product.wholesale_price) || parseFloat(product.price) || 0;
     }
     return parseFloat(product.retail_price) || parseFloat(product.price) || 0;
   };
 
-  const addToCart = (product, quantity = 1, pricingMode = 'RETAIL') => {
+  const addToCart = (product, quantity = 1, pricingMode = 'RETAIL', selectedPackage = null) => {
     if (!product || product.stock_quantity <= 0) return false;
 
     const isWholesale = (pricingMode || '').toUpperCase() === 'WHOLESALE';
     const wholesaleMin = product.wholesale_minimum_quantity || 10;
     const initialQty = isWholesale ? Math.max(quantity, wholesaleMin) : Math.max(1, quantity);
 
+    const packageId = selectedPackage?.id || null;
+    const packageName = selectedPackage?.package_name || null;
+
     setCartItems((prevItems) => {
       const existingIndex = prevItems.findIndex(
-        (item) => item.product.id === product.id && item.pricingMode === pricingMode
+        (item) => 
+          item.product.id === product.id && 
+          item.pricingMode === pricingMode && 
+          (item.package_id || null) === packageId
       );
 
       if (existingIndex > -1) {
@@ -55,6 +67,9 @@ export function CartProvider({ children }) {
           ...existingItem,
           quantity: newQty,
           product, // refresh product metadata
+          selectedPackage: selectedPackage || existingItem.selectedPackage,
+          package_id: packageId,
+          package_name: packageName,
         };
         return updated;
       } else {
@@ -64,6 +79,9 @@ export function CartProvider({ children }) {
             product,
             quantity: Math.min(product.stock_quantity, initialQty),
             pricingMode,
+            selectedPackage,
+            package_id: packageId,
+            package_name: packageName,
             addedAt: Date.now(),
           },
         ];
@@ -75,11 +93,15 @@ export function CartProvider({ children }) {
     return true;
   };
 
-  const updateQuantity = (productId, pricingMode, newQuantity) => {
+  const updateQuantity = (productId, pricingMode, packageIdOrQty, maybeQty) => {
+    const packageId = maybeQty !== undefined ? packageIdOrQty : null;
+    const newQuantity = maybeQty !== undefined ? maybeQty : packageIdOrQty;
+
     setCartItems((prevItems) => {
       return prevItems
         .map((item) => {
-          if (item.product.id === productId && item.pricingMode === pricingMode) {
+          const matchPkg = packageId !== null ? (item.package_id || null) === packageId : true;
+          if (item.product.id === productId && item.pricingMode === pricingMode && matchPkg) {
             const isWholesale = (pricingMode || '').toUpperCase() === 'WHOLESALE';
             const minQty = isWholesale ? (item.product.wholesale_minimum_quantity || 10) : 1;
             const maxQty = item.product.stock_quantity || 9999;
@@ -100,11 +122,13 @@ export function CartProvider({ children }) {
     });
   };
 
-  const removeFromCart = (productId, pricingMode) => {
+  const removeFromCart = (productId, pricingMode, packageId = null) => {
     setCartItems((prevItems) =>
-      prevItems.filter(
-        (item) => !(item.product.id === productId && item.pricingMode === pricingMode)
-      )
+      prevItems.filter((item) => {
+        if (item.product.id !== productId || item.pricingMode !== pricingMode) return true;
+        if (packageId !== null && (item.package_id || null) !== packageId) return true;
+        return false;
+      })
     );
   };
 
@@ -120,7 +144,7 @@ export function CartProvider({ children }) {
   const totalUniqueItems = cartItems.length;
 
   const totalAmount = cartItems.reduce((acc, item) => {
-    const price = getItemPrice(item.product, item.pricingMode);
+    const price = getItemPrice(item.product, item.pricingMode, item.selectedPackage);
     return acc + price * item.quantity;
   }, 0);
 

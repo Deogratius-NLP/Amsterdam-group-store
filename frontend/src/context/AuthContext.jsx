@@ -51,8 +51,23 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('amsterdam_admin_user');
   };
 
+  const updateSession = (data) => {
+    if (data?.access_token) {
+      setToken(data.access_token);
+      localStorage.setItem('amsterdam_admin_token', data.access_token);
+    }
+    const userProfile = {
+      id: data.user_id || adminUser?.id || 'admin',
+      name: data.user_name || adminUser?.name || 'Amsterdam Admin',
+      email: data.user_email || adminUser?.email,
+      role: data.user_role || adminUser?.role || 'admin'
+    };
+    setAdminUser(userProfile);
+    localStorage.setItem('amsterdam_admin_user', JSON.stringify(userProfile));
+  };
+
   return (
-    <AuthContext.Provider value={{ adminUser, token, isAuthenticated: !!token, loading, login, logout }}>
+    <AuthContext.Provider value={{ adminUser, token, isAuthenticated: !!token, loading, login, logout, updateSession }}>
       {children}
     </AuthContext.Provider>
   );

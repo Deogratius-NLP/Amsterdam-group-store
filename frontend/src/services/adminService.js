@@ -131,5 +131,17 @@ export const adminService = {
   async updateSettings(settingsData) {
     const response = await api.put('/admin/settings', settingsData);
     return response.data;
+  },
+
+  // Product Reordering
+  async reorderProducts(productIds) {
+    const response = await api.put('/admin/products/reorder', { product_ids: productIds });
+    return response.data;
+  },
+
+  // Admin Security & Credentials
+  async updateSecurity(securityData) {
+    const response = await api.put('/auth/security', securityData);
+    return response.data;
   }
 };

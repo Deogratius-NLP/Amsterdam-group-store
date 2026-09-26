@@ -100,7 +100,7 @@ export default function OrderSuccessModal({ orderConfirmation, isOpen, onClose }
           <div className="flex justify-between pb-2 border-b border-gray-200/60">
             <span className="text-gray-500">Items:</span>
             <span className="font-bold text-amsterdam-dark">
-              {orderConfirmation.items?.map(i => `${i.product_name_snapshot} × ${i.quantity}`).join(', ') || '1 product'}
+              {orderConfirmation.items?.map(i => `${i.product_name_snapshot}${i.package_name ? ` (${i.package_name})` : ''} × ${i.quantity}`).join(', ') || '1 product'}
             </span>
           </div>
           <div className="flex justify-between pt-1">

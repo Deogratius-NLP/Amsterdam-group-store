@@ -36,7 +36,8 @@ def place_customer_order(db: Session, order_data: CreateOrderRequest) -> OrderCo
             OrderItemInput(
                 product_id=order_data.product_id,
                 quantity=order_data.quantity,
-                pricing_mode=order_data.pricing_mode
+                pricing_mode=order_data.pricing_mode,
+                package_name=order_data.package_name
             )
         ]
     else:
@@ -97,11 +98,21 @@ def place_customer_order(db: Session, order_data: CreateOrderRequest) -> OrderCo
                 detail=f"Insufficient inventory for '{product.name}'. Only {product.stock_quantity} units available, but {line.quantity} requested."
             )
 
-        # Calculate unit price
-        if item_mode == "WHOLESALE":
-            chosen_price = product.wholesale_price if (product.wholesale_price is not None and product.wholesale_price > 0) else product.price
+        # Calculate unit price based on selected package if present
+        package_obj = None
+        if getattr(line, "package_name", None) and hasattr(product, "packages") and product.packages:
+            package_obj = next((pkg for pkg in product.packages if pkg.package_name.lower() == line.package_name.lower()), None)
+
+        if package_obj:
+            if item_mode == "WHOLESALE":
+                chosen_price = package_obj.wholesale_price if (package_obj.wholesale_price is not None and package_obj.wholesale_price > 0) else package_obj.retail_price
+            else:
+                chosen_price = package_obj.retail_price
         else:
-            chosen_price = product.retail_price if (product.retail_price is not None and product.retail_price > 0) else product.price
+            if item_mode == "WHOLESALE":
+                chosen_price = product.wholesale_price if (product.wholesale_price is not None and product.wholesale_price > 0) else product.price
+            else:
+                chosen_price = product.retail_price if (product.retail_price is not None and product.retail_price > 0) else product.price
 
         unit_price = Decimal(str(chosen_price))
         subtotal = unit_price * Decimal(str(line.quantity))
@@ -111,7 +122,8 @@ def place_customer_order(db: Session, order_data: CreateOrderRequest) -> OrderCo
             "quantity": line.quantity,
             "unit_price": unit_price,
             "subtotal": subtotal,
-            "item_mode": item_mode
+            "item_mode": item_mode,
+            "package_name": line.package_name if getattr(line, "package_name", None) else None
         })
 
     # If any item is wholesale, mark order as wholesale
@@ -165,6 +177,7 @@ def place_customer_order(db: Session, order_data: CreateOrderRequest) -> OrderCo
                 order_id=order.id,
                 product_id=prod.id,
                 product_name_snapshot=prod.name,
+                package_name=vl.get("package_name"),
                 unit_price=u_price,
                 quantity=qty,
                 subtotal=sub
@@ -194,14 +207,16 @@ def place_customer_order(db: Session, order_data: CreateOrderRequest) -> OrderCo
                     id=order_item.id,
                     product_id=prod.id,
                     product_name_snapshot=prod.name,
+                    package_name=vl.get("package_name"),
                     unit_price=u_price,
                     quantity=qty,
                     subtotal=sub
                 )
             )
 
+            pkg_label = f" ({vl['package_name']})" if vl.get("package_name") else ""
             whatsapp_items_summary.append({
-                "name": prod.name,
+                "name": f"{prod.name}{pkg_label}",
                 "quantity": qty,
                 "unit_price": float(u_price),
                 "subtotal": float(sub)
@@ -270,6 +285,7 @@ def get_order_invoice_data(db: Session, order: Order):
             id=item.id,
             product_id=item.product_id,
             product_name_snapshot=item.product_name_snapshot,
+            package_name=getattr(item, 'package_name', None),
             unit_price=item.unit_price,
             quantity=item.quantity,
             subtotal=item.subtotal

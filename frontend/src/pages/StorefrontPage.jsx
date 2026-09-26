@@ -34,6 +34,7 @@ export default function StorefrontPage() {
   
   const [orderProduct, setOrderProduct] = useState(null);
   const [orderQuantity, setOrderQuantity] = useState(1);
+  const [orderPackage, setOrderPackage] = useState(null);
   const [isOrderFormOpen, setIsOrderFormOpen] = useState(false);
 
   const [orderConfirmation, setOrderConfirmation] = useState(null);
@@ -95,11 +96,12 @@ export default function StorefrontPage() {
   };
 
   // Handle proceeding from Product Details to Customer Order Form
-  const handleProceedToOrder = (product, quantity) => {
+  const handleProceedToOrder = (product, quantity, selectedPackage = null) => {
     setIsDetailsOpen(false);
     setCartCheckoutItems(null);
     setOrderProduct(product);
     setOrderQuantity(quantity);
+    setOrderPackage(selectedPackage);
     setIsOrderFormOpen(true);
   };
 
@@ -107,6 +109,7 @@ export default function StorefrontPage() {
   const handleProceedToCartCheckout = (items) => {
     closeCart();
     setOrderProduct(null);
+    setOrderPackage(null);
     setCartCheckoutItems(items);
     setIsOrderFormOpen(true);
   };
@@ -303,11 +306,13 @@ export default function StorefrontPage() {
       <OrderFormModal
         product={orderProduct}
         quantity={orderQuantity}
+        selectedPackage={orderPackage}
         cartItems={cartCheckoutItems}
         isOpen={isOrderFormOpen}
         onClose={() => {
           setIsOrderFormOpen(false);
           setCartCheckoutItems(null);
+          setOrderPackage(null);
         }}
         onBack={handleBackToDetails}
         onOrderSuccess={handleOrderSuccess}

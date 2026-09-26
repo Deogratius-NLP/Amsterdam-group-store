@@ -14,12 +14,14 @@ import {
   ExternalLink, 
   AlertCircle, 
   Loader2, 
-  RefreshCw 
+  RefreshCw,
+  Lock,
+  Key
 } from 'lucide-react';
 import { AMSTERDAM_WHATSAPP_DISPLAY, AMSTERDAM_WHATSAPP_NUMBER } from '../../utils/constants';
 
 export default function SettingsPage() {
-  const { adminUser } = useAuth();
+  const { adminUser, updateSession } = useAuth();
   const { refreshSettings } = useSettings();
 
   const [whatsappNumber, setWhatsappNumber] = useState('');
@@ -28,6 +30,17 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Security & Credentials Form State
+  const [securityForm, setSecurityForm] = useState({
+    currentPassword: '',
+    newEmail: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [securitySaving, setSecuritySaving] = useState(false);
+  const [securitySuccess, setSecuritySuccess] = useState('');
+  const [securityError, setSecurityError] = useState('');
 
   // Fetch active settings on page load
   useEffect(() => {
@@ -84,6 +97,65 @@ export default function SettingsPage() {
       setErrorMessage(detail);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSecuritySubmit = async (e) => {
+    e.preventDefault();
+    setSecurityError('');
+    setSecuritySuccess('');
+
+    if (!securityForm.currentPassword) {
+      setSecurityError('Current password is required to authorize changes.');
+      return;
+    }
+
+    if (!securityForm.newEmail.trim() && !securityForm.newPassword) {
+      setSecurityError('Please enter a new email address or new password to update.');
+      return;
+    }
+
+    if (securityForm.newPassword) {
+      if (securityForm.newPassword.length < 8) {
+        setSecurityError('New password must be at least 8 characters.');
+        return;
+      }
+      if (securityForm.newPassword !== securityForm.confirmPassword) {
+        setSecurityError('New password and confirm password do not match.');
+        return;
+      }
+    }
+
+    try {
+      setSecuritySaving(true);
+      const payload = {
+        current_password: securityForm.currentPassword
+      };
+      if (securityForm.newEmail.trim()) {
+        payload.new_email = securityForm.newEmail.trim();
+      }
+      if (securityForm.newPassword) {
+        payload.new_password = securityForm.newPassword;
+      }
+
+      const res = await adminService.updateSecurity(payload);
+      if (updateSession) {
+        updateSession(res);
+      }
+
+      setSecuritySuccess('Credentials updated successfully! Your active session is secured.');
+      setSecurityForm({
+        currentPassword: '',
+        newEmail: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setTimeout(() => setSecuritySuccess(''), 6000);
+    } catch (err) {
+      console.error('Failed to update security credentials:', err);
+      setSecurityError(err.response?.data?.detail || 'Failed to update credentials. Please check your current password.');
+    } finally {
+      setSecuritySaving(false);
     }
   };
 
@@ -222,6 +294,138 @@ export default function SettingsPage() {
                   )}
                 </button>
               </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Security & Login Credentials */}
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-gray-200/80 shadow-card space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-base text-amsterdam-dark">
+                Security & Login Credentials
+              </h3>
+              <p className="text-xs text-gray-400">
+                Update your administrator login email and password. Protected by current password verification.
+              </p>
+            </div>
+          </div>
+
+          {/* Feedback Messages */}
+          {securitySuccess && (
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-3 text-emerald-800 text-xs font-medium animate-in fade-in">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{securitySuccess}</span>
+            </div>
+          )}
+
+          {securityError && (
+            <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 flex items-center gap-3 text-red-700 text-xs font-medium animate-in fade-in">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <span>{securityError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSecuritySubmit} className="space-y-4 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Current Password *
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    required
+                    disabled={securitySaving}
+                    placeholder="Enter current password"
+                    value={securityForm.currentPassword}
+                    onChange={(e) => setSecurityForm({ ...securityForm, currentPassword: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-xs font-mono text-amsterdam-dark focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all disabled:bg-gray-50"
+                  />
+                  <Key className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+                <span className="text-[11px] text-gray-400 mt-1 block">
+                  Required to authorize credential changes.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  New Admin Email
+                </label>
+                <input
+                  type="email"
+                  disabled={securitySaving}
+                  placeholder={adminUser?.email || "newadmin@amsterdamgroup.co.tz"}
+                  value={securityForm.newEmail}
+                  onChange={(e) => setSecurityForm({ ...securityForm, newEmail: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-xs text-amsterdam-dark focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all disabled:bg-gray-50"
+                />
+                <span className="text-[11px] text-gray-400 mt-1 block">
+                  Leave blank if keeping current email ({adminUser?.email}).
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  disabled={securitySaving}
+                  placeholder="Min 8 characters"
+                  value={securityForm.newPassword}
+                  onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-xs font-mono text-amsterdam-dark focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all disabled:bg-gray-50"
+                />
+                <span className="text-[11px] text-gray-400 mt-1 block">
+                  Leave blank if keeping existing password.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  disabled={securitySaving || !securityForm.newPassword}
+                  placeholder="Re-enter new password"
+                  value={securityForm.confirmPassword}
+                  onChange={(e) => setSecurityForm({ ...securityForm, confirmPassword: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-xs font-mono text-amsterdam-dark focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all disabled:bg-gray-50"
+                />
+                <span className="text-[11px] text-gray-400 mt-1 block">
+                  Must match new password above.
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-gray-100">
+              <p className="text-[11px] text-gray-400 max-w-md">
+                Updating your credentials will update your account securely in the database and maintain your authenticated session.
+              </p>
+
+              <button
+                type="submit"
+                disabled={securitySaving}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs transition-all shadow-sm active:scale-95 disabled:opacity-50"
+              >
+                {securitySaving ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Updating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Update Credentials</span>
+                  </>
+                )}
+              </button>
             </div>
           </form>
         </div>

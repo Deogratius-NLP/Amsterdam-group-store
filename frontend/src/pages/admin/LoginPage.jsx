@@ -4,8 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { ShieldCheck, Lock, Mail, AlertCircle, Loader2, Store } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('admin@amsterdamgroup.co.tz');
-  const [password, setPassword] = useState('Admin@Amsterdam2026!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { isAuthenticated, login } = useAuth();
@@ -116,16 +116,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Quick Credential Hint for Evaluators */}
-          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-            <span className="text-[11px] text-gray-400 block mb-1">
-              Default Deployment Credentials:
-            </span>
-            <code className="text-[11px] bg-amsterdam-muted px-2 py-0.5 rounded text-amsterdam-olive-dark font-mono font-bold">
-              admin@amsterdamgroup.co.tz / Admin@Amsterdam2026!
-            </code>
-          </div>
 
           <div className="mt-5 text-center">
             <Link

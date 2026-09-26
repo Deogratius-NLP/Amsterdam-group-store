@@ -4,8 +4,7 @@ from app.db.session import engine, Base
 from app.core.config import settings
 from app.core.security import get_password_hash
 from app.models.admin_user import AdminUser
-from app.models.product import Product
-from app.models.product_image import ProductImage
+from app.models.product import Product, ProductPackage, ProductImage
 from app.models.inventory_transaction import InventoryTransaction
 from app.models.system_setting import SystemSetting
 
@@ -16,17 +15,28 @@ def init_db(db: Session) -> None:
     # 1. Create tables if not exist
     Base.metadata.create_all(bind=engine)
 
-    # Ensure 'instructions' column exists in SQLite products table
+    # Ensure 'instructions' column exists in products table and 'package_name' in order_items
     from sqlalchemy import text
     try:
         with engine.connect() as conn:
-            res = conn.execute(text("PRAGMA table_info(products)"))
-            cols = [row[1] for row in res.fetchall()]
-            if cols and "instructions" not in cols:
-                conn.execute(text("ALTER TABLE products ADD COLUMN instructions TEXT"))
+            if "sqlite" in str(engine.url):
+                res = conn.execute(text("PRAGMA table_info(products)"))
+                cols = [row[1] for row in res.fetchall()]
+                if cols and "instructions" not in cols:
+                    conn.execute(text("ALTER TABLE products ADD COLUMN instructions TEXT"))
+                    conn.commit()
+
+                res_items = conn.execute(text("PRAGMA table_info(order_items)"))
+                item_cols = [row[1] for row in res_items.fetchall()]
+                if item_cols and "package_name" not in item_cols:
+                    conn.execute(text("ALTER TABLE order_items ADD COLUMN package_name VARCHAR(100)"))
+                    conn.commit()
+            else:
+                conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS instructions TEXT"))
+                conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS package_name VARCHAR(100)"))
                 conn.commit()
     except Exception as e:
-        logger.warning(f"Column instructions check skipped: {e}")
+        logger.warning(f"Schema compatibility check skipped: {e}")
 
     # Seed Default Settings
     wa_setting = db.query(SystemSetting).filter(SystemSetting.key == "whatsapp_number").first()
@@ -355,3 +365,29 @@ def init_db(db: Session) -> None:
 
         db.commit()
         logger.info("Products seeded successfully with multi-image carousels and inventory logs.")
+
+    # 4. Seed sample packages for multi-pack products if none exist yet
+    if db.query(ProductPackage).count() == 0:
+        logger.info("Seeding initial product packages...")
+        all_prods = db.query(Product).all()
+        for prod in all_prods:
+            pname = prod.name.lower()
+            if "chick" in pname or "vita-chick" in pname:
+                db.add_all([
+                    ProductPackage(product_id=prod.id, package_name="30g", retail_price=3500.00, wholesale_price=3000.00, display_order=0),
+                    ProductPackage(product_id=prod.id, package_name="100g", retail_price=10000.00, wholesale_price=8500.00, display_order=1),
+                    ProductPackage(product_id=prod.id, package_name="250g", retail_price=22000.00, wholesale_price=18500.00, display_order=2),
+                ])
+            elif "vitamix" in pname or "egg max" in pname:
+                db.add_all([
+                    ProductPackage(product_id=prod.id, package_name="100g", retail_price=4000.00, wholesale_price=3400.00, display_order=0),
+                    ProductPackage(product_id=prod.id, package_name="250g", retail_price=9000.00, wholesale_price=7650.00, display_order=1),
+                    ProductPackage(product_id=prod.id, package_name="1kg", retail_price=prod.retail_price or 25000.00, wholesale_price=prod.wholesale_price or 21250.00, display_order=2),
+                ])
+            elif "vital-amino" in pname or "layer" in pname:
+                db.add_all([
+                    ProductPackage(product_id=prod.id, package_name="500g", retail_price=15000.00, wholesale_price=12500.00, display_order=0),
+                    ProductPackage(product_id=prod.id, package_name="1kg", retail_price=prod.retail_price or 28000.00, wholesale_price=prod.wholesale_price or 23800.00, display_order=1),
+                ])
+        db.commit()
+        logger.info("Product packages seeded successfully.")

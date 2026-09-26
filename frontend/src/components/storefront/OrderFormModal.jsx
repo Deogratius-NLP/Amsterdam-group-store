@@ -7,6 +7,7 @@ import { getProductImageUrl } from '../../utils/imageUrl';
 export default function OrderFormModal({ 
   product, 
   quantity, 
+  selectedPackage = null,
   cartItems = null,
   isOpen, 
   onClose, 
@@ -29,19 +30,24 @@ export default function OrderFormModal({
   if (!isOpen || (!product && !isMultiItem)) return null;
 
   const isWholesale = (pricingMode || '').toUpperCase() === 'WHOLESALE';
-  const unitPrice = product
+  const unitPrice = selectedPackage
     ? isWholesale
-      ? (parseFloat(product.wholesale_price) || parseFloat(product.price) || 0)
-      : (parseFloat(product.retail_price) || parseFloat(product.price) || 0)
-    : 0;
+      ? (parseFloat(selectedPackage.wholesale_price) || 0)
+      : (parseFloat(selectedPackage.retail_price) || 0)
+    : product
+      ? isWholesale
+        ? (parseFloat(product.wholesale_price) || parseFloat(product.price) || 0)
+        : (parseFloat(product.retail_price) || parseFloat(product.price) || 0)
+      : 0;
 
   const totalAmount = isMultiItem
     ? cartItems.reduce((acc, it) => {
-        const isWs = (it.pricingMode || '').toUpperCase() === 'WHOLESALE';
-        const price = isWs
-          ? (parseFloat(it.product.wholesale_price) || parseFloat(it.product.price) || 0)
-          : (parseFloat(it.product.retail_price) || parseFloat(it.product.price) || 0);
-        return acc + price * it.quantity;
+        const itPrice = it.unitPrice !== undefined
+          ? it.unitPrice
+          : (it.pricingMode || '').toUpperCase() === 'WHOLESALE'
+            ? (parseFloat(it.product.wholesale_price) || parseFloat(it.product.price) || 0)
+            : (parseFloat(it.product.retail_price) || parseFloat(it.product.price) || 0);
+        return acc + itPrice * it.quantity;
       }, 0)
     : unitPrice * (quantity || 1);
 
@@ -88,6 +94,7 @@ export default function OrderFormModal({
           items: cartItems.map((it) => ({
             product_id: it.product.id,
             quantity: it.quantity,
+            package_name: it.package_name || null,
             pricing_mode: it.pricingMode || (hasWholesale ? 'WHOLESALE' : 'RETAIL'),
           })),
         };
@@ -99,6 +106,7 @@ export default function OrderFormModal({
           customer_notes: formData.customer_notes.trim() || null,
           product_id: product.id,
           quantity: quantity,
+          package_name: selectedPackage?.package_name || null,
           pricing_mode: isWholesale ? 'WHOLESALE' : 'RETAIL',
         };
       }
@@ -174,7 +182,7 @@ export default function OrderFormModal({
                   const itImg = getProductImageUrl(rawItImg);
                   return (
                     <div
-                      key={`${it.product.id}-${it.pricingMode}`}
+                      key={`${it.product.id}-${it.pricingMode}-${it.package_id || 'default'}`}
                       className="pt-2 first:pt-0 flex items-center justify-between gap-3 text-xs"
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -188,6 +196,11 @@ export default function OrderFormModal({
                         />
                         <div className="min-w-0 flex-1 truncate">
                           <p className="font-bold text-amsterdam-dark truncate">{it.product.name}</p>
+                          {it.package_name && (
+                            <span className="inline-block px-1.5 py-0.2 rounded bg-amsterdam-muted text-amsterdam-olive-dark text-[10px] font-bold">
+                              {it.package_name}
+                            </span>
+                          )}
                           <p className="text-[11px] text-gray-400">
                             {it.quantity} × {formatTsh(itPrice)}
                             <span
@@ -235,6 +248,11 @@ export default function OrderFormModal({
                     {isWholesale ? 'Wholesale' : 'Retail'}
                   </span>
                 </div>
+                {selectedPackage?.package_name && (
+                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded bg-amsterdam-muted text-amsterdam-olive-dark text-[10px] font-bold">
+                    Package: {selectedPackage.package_name}
+                  </span>
+                )}
                 <p className="text-xs text-gray-500 mt-0.5">
                   Quantity: <span className="font-bold text-amsterdam-dark">{quantity}</span> × {formatTsh(unitPrice)}
                 </p>

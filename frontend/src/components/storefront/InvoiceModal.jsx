@@ -254,6 +254,13 @@ export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
                     <tr key={item.id || idx} className="hover:bg-gray-50/50">
                       <td className="py-3 px-4 font-semibold text-[#1A1A1A]">
                         <div>{item.product_name_snapshot}</div>
+                        {item.package_name && (
+                          <div className="mt-1">
+                            <span className="inline-block px-2 py-0.5 rounded bg-[#EFF6EA] text-[#4D801E] text-[10px] font-bold border border-[#D5ECC2]">
+                              Package: {item.package_name}
+                            </span>
+                          </div>
+                        )}
                         <div className="text-[10px] text-gray-400 font-normal mt-0.5">
                           Certified Quality Formula • East African Veterinary Standard
                         </div>

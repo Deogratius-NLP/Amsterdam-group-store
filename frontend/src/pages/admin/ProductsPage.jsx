@@ -119,6 +119,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [reordering, setReordering] = useState(false);
   
   // Create / Edit Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -142,6 +143,7 @@ export default function ProductsPage() {
     is_coming_soon: false,
     description: '',
     instructions: getDefaultInstructionsFor('', 'Feed Grade Vitamins', ''),
+    packages: [],
     images: [
       { image_url: '/vitamix-sample.jpg', alt_text: 'Front Pack', is_primary: true },
       { image_url: '/vitamix-sample.jpg', alt_text: 'Nutritional Detail', is_primary: false },
@@ -168,6 +170,29 @@ export default function ProductsPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // Product Reordering: Move Up / Down
+  const handleMoveProduct = async (index, direction) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= products.length) return;
+
+    const newProducts = [...products];
+    const temp = newProducts[index];
+    newProducts[index] = newProducts[targetIndex];
+    newProducts[targetIndex] = temp;
+    setProducts(newProducts);
+
+    try {
+      setReordering(true);
+      const productIds = newProducts.map((p) => p.id);
+      await adminService.reorderProducts(productIds);
+    } catch (err) {
+      console.error('Failed to persist product order:', err);
+      fetchProducts();
+    } finally {
+      setReordering(false);
+    }
+  };
+
   const openCreateModal = () => {
     setEditingProduct(null);
     setFormData({
@@ -183,6 +208,7 @@ export default function ProductsPage() {
       is_coming_soon: false,
       description: '',
       instructions: getDefaultInstructionsFor('', 'Feed Grade Vitamins', ''),
+      packages: [],
       images: [
         { image_url: '/vitamix-sample.jpg', alt_text: 'Front Pack', is_primary: true },
         { image_url: '/vitamix-sample.jpg', alt_text: 'Back Pack', is_primary: false },
@@ -200,6 +226,15 @@ export default function ProductsPage() {
       ? existingInstructions 
       : getDefaultInstructionsFor(prod.name, prod.category, prod.description);
 
+    const existingPackages = prod.packages && prod.packages.length > 0
+      ? prod.packages.map((pkg) => ({
+          id: pkg.id,
+          package_name: pkg.package_name,
+          retail_price: pkg.retail_price,
+          wholesale_price: pkg.wholesale_price
+        }))
+      : [];
+
     setFormData({
       name: prod.name,
       category: prod.category,
@@ -213,6 +248,7 @@ export default function ProductsPage() {
       is_coming_soon: prod.is_coming_soon,
       description: prod.description || '',
       instructions: initialInstructions,
+      packages: existingPackages,
       images: prod.images && prod.images.length > 0 ? prod.images.map(img => ({
         image_url: img.image_url,
         alt_text: img.alt_text || prod.name,
@@ -223,6 +259,32 @@ export default function ProductsPage() {
     });
     setFormError('');
     setModalOpen(true);
+  };
+
+  // Package builder handlers
+  const addPackageField = () => {
+    setFormData({
+      ...formData,
+      packages: [
+        ...(formData.packages || []),
+        {
+          package_name: '',
+          retail_price: formData.retail_price || '',
+          wholesale_price: formData.wholesale_price || ''
+        }
+      ]
+    });
+  };
+
+  const removePackageField = (index) => {
+    const updated = (formData.packages || []).filter((_, i) => i !== index);
+    setFormData({ ...formData, packages: updated });
+  };
+
+  const handlePackageChange = (index, field, value) => {
+    const updated = [...(formData.packages || [])];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, packages: updated });
   };
 
   const handleImageUrlChange = (index, value) => {
@@ -356,6 +418,17 @@ export default function ProductsPage() {
         ? cleanSteps.map((step, i) => `${i + 1}. ${step.replace(/^\d+[\.\)]\s*/, '')}`).join('\n')
         : '';
 
+      // Clean and format packages
+      const cleanPackages = (formData.packages || [])
+        .filter(p => p.package_name && p.package_name.trim())
+        .map((p, idx) => ({
+          package_name: p.package_name.trim(),
+          retail_price: parseFloat(p.retail_price) || retailPrice,
+          wholesale_price: parseFloat(p.wholesale_price) || wholesalePrice,
+          display_order: idx,
+          is_active: true
+        }));
+
       const payload = {
         name: formData.name.trim(),
         category: formData.category.trim(),
@@ -369,7 +442,8 @@ export default function ProductsPage() {
         is_coming_soon: formData.is_coming_soon,
         description: formData.description.trim(),
         instructions: instructionsString,
-        images: formData.images.filter(img => img.image_url.trim())
+        images: formData.images.filter(img => img.image_url.trim()),
+        packages: cleanPackages
       };
 
       if (editingProduct) {
@@ -463,6 +537,7 @@ export default function ProductsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50/70 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                  <th className="py-3 px-3 w-16 text-center">Order</th>
                   <th className="py-3 px-6">Product</th>
                   <th className="py-3 px-6">Category</th>
                   <th className="py-3 px-6">Retail Price</th>
@@ -473,12 +548,36 @@ export default function ProductsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-xs">
-                {products.map((p) => {
+                {products.map((p, idx) => {
                   const isLow = p.stock_quantity > 0 && p.stock_quantity <= p.low_stock_threshold;
                   const isOut = p.stock_quantity <= 0;
 
                   return (
                     <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                      {/* Order Controls */}
+                      <td className="py-4 px-3 text-center">
+                        <div className="flex items-center justify-center gap-0.5">
+                          <button
+                            type="button"
+                            disabled={idx === 0 || reordering}
+                            onClick={() => handleMoveProduct(idx, -1)}
+                            className="p-1 rounded text-gray-500 hover:text-amsterdam-dark hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent transition-all"
+                            title="Move Up"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === products.length - 1 || reordering}
+                            onClick={() => handleMoveProduct(idx, 1)}
+                            className="p-1 rounded text-gray-500 hover:text-amsterdam-dark hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent transition-all"
+                            title="Move Down"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+
                       {/* Product Name & Image */}
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
@@ -494,6 +593,18 @@ export default function ProductsPage() {
                             <span className="font-bold text-amsterdam-dark block">
                               {p.name}
                             </span>
+                            {p.packages && p.packages.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {p.packages.map((pkg) => (
+                                  <span
+                                    key={pkg.id || pkg.package_name}
+                                    className="px-1.5 py-0.2 rounded bg-amsterdam-muted text-amsterdam-olive-dark text-[10px] font-bold"
+                                  >
+                                    {pkg.package_name}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-[11px] text-gray-400">
                                 {p.images?.length || 1} {p.images?.length === 1 ? 'image' : 'images'}
@@ -708,6 +819,80 @@ export default function ProductsPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Product Packages & Variations (Optional) */}
+              <div className="bg-[#FAFDF6] p-4 rounded-2xl border border-amsterdam-olive/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-[11px] font-bold text-amsterdam-dark uppercase tracking-wider flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-amsterdam-olive" />
+                    <span>Product Packages & Sizes (Optional)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addPackageField}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amsterdam-muted hover:bg-amsterdam-lime/20 text-amsterdam-olive-dark text-[11px] font-bold transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3 text-amsterdam-olive" />
+                    <span>Add Package</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-500">
+                  If this product comes in multiple packaging sizes (e.g. 30g, 100g, 250g, 1kg), define individual package names and prices here. Customers can select their preferred package on the storefront.
+                </p>
+
+                {(formData.packages || []).length > 0 ? (
+                  <div className="space-y-2 pt-1">
+                    {formData.packages.map((pkg, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-gray-200">
+                        <div className="flex-1">
+                          <label className="block text-[10px] font-bold text-gray-500 mb-0.5">Package Size / Name *</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 100g, 250g, 1kg"
+                            value={pkg.package_name}
+                            onChange={(e) => handlePackageChange(idx, 'package_name', e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-amsterdam-dark font-bold focus:outline-none focus:ring-1 focus:ring-amsterdam-olive"
+                          />
+                        </div>
+                        <div className="w-32">
+                          <label className="block text-[10px] font-bold text-gray-500 mb-0.5">Retail Price (TSh)</label>
+                          <input
+                            type="number"
+                            placeholder={formData.retail_price || '25000'}
+                            value={pkg.retail_price}
+                            onChange={(e) => handlePackageChange(idx, 'retail_price', e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-amsterdam-dark focus:outline-none focus:ring-1 focus:ring-amsterdam-olive"
+                          />
+                        </div>
+                        <div className="w-32">
+                          <label className="block text-[10px] font-bold text-gray-500 mb-0.5">Wholesale Price (TSh)</label>
+                          <input
+                            type="number"
+                            placeholder={formData.wholesale_price || '21250'}
+                            value={pkg.wholesale_price}
+                            onChange={(e) => handlePackageChange(idx, 'wholesale_price', e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-amsterdam-dark focus:outline-none focus:ring-1 focus:ring-amsterdam-olive"
+                          />
+                        </div>
+                        <div className="pt-4">
+                          <button
+                            type="button"
+                            onClick={() => removePackageField(idx)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-50 transition-colors"
+                            title="Remove Package"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-gray-400 italic py-1">
+                    No individual packages configured. The standard base price above applies.
+                  </div>
+                )}
               </div>
 
               {/* Stock Inventory (Shared Pool) */}

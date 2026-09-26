@@ -121,6 +121,7 @@ export default function ProductDetailsModal({
   pricingMode = 'RETAIL'
 }) {
   const [quantity, setQuantity] = useState(1);
+  const [selectedPackage, setSelectedPackage] = useState(null);
   const [validationError, setValidationError] = useState('');
   const { addToCart } = useCart();
   const [cartSuccess, setCartSuccess] = useState(false);
@@ -133,11 +134,24 @@ export default function ProductDetailsModal({
   const isOutOfStock = maxAvailable <= 0;
   const isLowStock = maxAvailable > 0 && maxAvailable <= (product?.low_stock_threshold || 5);
 
-  const unitPrice = product
+  // Initialize selected package when product changes
+  useEffect(() => {
+    if (product?.packages && product.packages.length > 0) {
+      setSelectedPackage(product.packages[0]);
+    } else {
+      setSelectedPackage(null);
+    }
+  }, [product]);
+
+  const unitPrice = selectedPackage
     ? isWholesale
-      ? parseFloat(product.wholesale_price) || parseFloat(product.price) || 0
-      : parseFloat(product.retail_price) || parseFloat(product.price) || 0
-    : 0;
+      ? parseFloat(selectedPackage.wholesale_price) || 0
+      : parseFloat(selectedPackage.retail_price) || 0
+    : product
+      ? isWholesale
+        ? parseFloat(product.wholesale_price) || parseFloat(product.price) || 0
+        : parseFloat(product.retail_price) || parseFloat(product.price) || 0
+      : 0;
 
   const subtotal = unitPrice * quantity;
 
@@ -188,7 +202,7 @@ export default function ProductDetailsModal({
       setValidationError(`Wholesale orders require a minimum of ${wholesaleMin} units for this product.`);
       return;
     }
-    onProceedToOrder(product, quantity);
+    onProceedToOrder(product, quantity, selectedPackage);
   };
 
   return (
@@ -271,6 +285,41 @@ export default function ProductDetailsModal({
                   </span>
                 )}
               </div>
+
+              {/* Package Variation Selector (e.g. 30g, 100g, 250g) */}
+              {product.packages && product.packages.length > 0 && (
+                <div className="mt-3.5 pt-3 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                      Package Size: <span className="text-amsterdam-olive-dark font-extrabold">{selectedPackage?.package_name}</span>
+                    </span>
+                    <span className="text-[11px] text-gray-400">Select package</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {product.packages.map((pkg) => {
+                      const isSelected = selectedPackage?.id === pkg.id || selectedPackage?.package_name === pkg.package_name;
+                      const pkgPrice = isWholesale ? pkg.wholesale_price : pkg.retail_price;
+                      return (
+                        <button
+                          key={pkg.id || pkg.package_name}
+                          type="button"
+                          onClick={() => setSelectedPackage(pkg)}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer ${
+                            isSelected
+                              ? 'bg-amsterdam-dark text-white border-amsterdam-dark shadow-sm ring-2 ring-amsterdam-olive/20'
+                              : 'bg-[#F8FAF5] hover:bg-gray-100 text-gray-700 border-gray-200'
+                          }`}
+                        >
+                          <span>{pkg.package_name}</span>
+                          <span className={`text-[10px] font-semibold ${isSelected ? 'text-amsterdam-lime' : 'text-gray-500'}`}>
+                            {formatTsh(pkgPrice)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Description */}
               <div className="mt-3 pt-3 border-t border-gray-100">
@@ -382,7 +431,7 @@ export default function ProductDetailsModal({
                           setValidationError(`Wholesale orders require a minimum of ${wholesaleMin} units for this product.`);
                           return;
                         }
-                        addToCart(product, quantity, pricingMode);
+                        addToCart(product, quantity, pricingMode, selectedPackage);
                         setCartSuccess(true);
                         setTimeout(() => setCartSuccess(false), 2000);
                       }}

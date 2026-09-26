@@ -8,6 +8,7 @@ class OrderItemInput(BaseModel):
     product_id: str = Field(..., description="ID of product being purchased")
     quantity: int = Field(..., ge=1, le=1000, description="Quantity of units to order")
     pricing_mode: Optional[str] = Field(default=None, description="Optional per-item override: RETAIL or WHOLESALE")
+    package_name: Optional[str] = Field(default=None, description="Optional package size: e.g. 30g, 100g, 250g")
 
 
 class CreateOrderRequest(BaseModel):
@@ -16,6 +17,7 @@ class CreateOrderRequest(BaseModel):
     customer_location: str = Field(..., min_length=2, max_length=500, description="Free text delivery location")
     product_id: Optional[str] = Field(default=None, description="ID of product being purchased (single-item order)")
     quantity: Optional[int] = Field(default=None, ge=1, le=1000, description="Quantity of units to order")
+    package_name: Optional[str] = Field(default=None, description="Optional package size for single-item order")
     items: Optional[List[OrderItemInput]] = Field(default=None, description="List of items for multi-item cart orders")
     pricing_mode: Optional[str] = Field(default="RETAIL", description="Shopping mode: RETAIL or WHOLESALE")
     customer_notes: Optional[str] = None
@@ -27,6 +29,7 @@ class OrderItemOut(BaseModel):
     id: str
     product_id: str
     product_name_snapshot: str
+    package_name: Optional[str] = None
     unit_price: Decimal
     quantity: int
     subtotal: Decimal

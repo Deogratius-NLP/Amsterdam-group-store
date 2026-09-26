@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.db.session import get_db
 from app.models.product import Product
-from app.schemas.product import ProductOut, ProductDetailOut, ProductImageOut
+from app.schemas.product import ProductOut, ProductDetailOut, ProductImageOut, ProductPackageOut
 
 router = APIRouter(prefix="/products", tags=["Public Products"])
 
@@ -25,6 +25,18 @@ def _to_product_out(p: Product) -> ProductOut:
         for img in sorted(p.images, key=lambda x: x.display_order)
     ]
 
+    packages_out = [
+        ProductPackageOut(
+            id=pkg.id,
+            package_name=pkg.package_name,
+            retail_price=pkg.retail_price,
+            wholesale_price=pkg.wholesale_price,
+            display_order=pkg.display_order,
+            is_active=pkg.is_active
+        )
+        for pkg in sorted(p.packages, key=lambda x: x.display_order)
+    ] if hasattr(p, "packages") and p.packages else []
+
     return ProductOut(
         id=p.id,
         name=p.name,
@@ -43,6 +55,7 @@ def _to_product_out(p: Product) -> ProductOut:
         display_order=p.display_order,
         primary_image_url=primary_img,
         images=images_out,
+        packages=packages_out,
         created_at=p.created_at,
         updated_at=p.updated_at
     )

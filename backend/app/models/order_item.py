@@ -11,6 +11,7 @@ class OrderItem(Base):
     order_id = Column(String(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
     product_id = Column(String(36), ForeignKey("products.id"), nullable=False, index=True)
     product_name_snapshot = Column(String(200), nullable=False)  # Preserves name at time of order
+    package_name = Column(String(100), nullable=True)  # Preserves package size at time of order (e.g. 100g)
     unit_price = Column(Numeric(12, 2), nullable=False)  # Preserves price at time of order
     quantity = Column(Integer, nullable=False)
     subtotal = Column(Numeric(12, 2), nullable=False)

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Integer, Numeric, Boolean, DateTime, Text
+from sqlalchemy import Column, String, Integer, Numeric, Boolean, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 
@@ -27,8 +27,27 @@ class Product(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan", order_by="ProductImage.display_order")
+    packages = relationship("ProductPackage", back_populates="product", cascade="all, delete-orphan", order_by="ProductPackage.display_order")
     order_items = relationship("OrderItem", back_populates="product")
     inventory_transactions = relationship("InventoryTransaction", back_populates="product")
 
     def __repr__(self):
         return f"<Product {self.name} (Stock: {self.stock_quantity})>"
+
+
+class ProductPackage(Base):
+    __tablename__ = "product_packages"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    product_id = Column(String(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    package_name = Column(String(100), nullable=False)  # e.g. "30g", "100g", "250g", "1kg", "5 Litres"
+    retail_price = Column(Numeric(12, 2), nullable=False)
+    wholesale_price = Column(Numeric(12, 2), nullable=False)
+    display_order = Column(Integer, default=0, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    product = relationship("Product", back_populates="packages")
+
+    def __repr__(self):
+        return f"<ProductPackage {self.package_name} (Retail: {self.retail_price}, Wholesale: {self.wholesale_price})>"

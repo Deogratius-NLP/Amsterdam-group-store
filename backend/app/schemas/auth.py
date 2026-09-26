@@ -26,3 +26,10 @@ class AdminUserOut(BaseModel):
     role: str
     is_active: bool
     created_at: datetime
+
+
+class ChangeCredentialsRequest(BaseModel):
+    current_password: str
+    new_email: Optional[EmailStr] = None
+    new_password: Optional[str] = None
+    confirm_password: Optional[str] = None
