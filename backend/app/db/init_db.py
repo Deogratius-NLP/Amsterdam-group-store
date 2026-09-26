@@ -3,11 +3,17 @@ from sqlalchemy.orm import Session
 from app.db.session import engine, Base
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.models.admin_user import AdminUser
-from app.models.product import Product, ProductPackage
-from app.models.product_image import ProductImage
-from app.models.inventory_transaction import InventoryTransaction
-from app.models.system_setting import SystemSetting
+from app.models import (
+    AdminUser,
+    Customer,
+    Product,
+    ProductPackage,
+    ProductImage,
+    Order,
+    OrderItem,
+    InventoryTransaction,
+    SystemSetting,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,23 +25,20 @@ def init_db(db: Session) -> None:
     # Ensure 'instructions' column exists in products table and 'package_name' in order_items
     from sqlalchemy import text
     try:
-        with engine.connect() as conn:
+        with engine.begin() as conn:
             if "sqlite" in str(engine.url):
                 res = conn.execute(text("PRAGMA table_info(products)"))
                 cols = [row[1] for row in res.fetchall()]
                 if cols and "instructions" not in cols:
                     conn.execute(text("ALTER TABLE products ADD COLUMN instructions TEXT"))
-                    conn.commit()
 
                 res_items = conn.execute(text("PRAGMA table_info(order_items)"))
                 item_cols = [row[1] for row in res_items.fetchall()]
                 if item_cols and "package_name" not in item_cols:
                     conn.execute(text("ALTER TABLE order_items ADD COLUMN package_name VARCHAR(100)"))
-                    conn.commit()
             else:
                 conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS instructions TEXT"))
                 conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS package_name VARCHAR(100)"))
-                conn.commit()
     except Exception as e:
         logger.warning(f"Schema compatibility check skipped: {e}")
 

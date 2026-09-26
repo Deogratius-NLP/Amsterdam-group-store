@@ -1,3 +1,4 @@
+from typing import List, Optional
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -8,7 +9,7 @@ from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.inventory_transaction import InventoryTransaction
 from app.models.system_setting import SystemSetting
-from app.schemas.order import CreateOrderRequest, OrderConfirmationOut, OrderItemOut
+from app.schemas.order import CreateOrderRequest, OrderConfirmationOut, OrderItemOut, OrderItemInput, InvoiceOut
 from app.services.whatsapp_service import build_whatsapp_order_message
 
 
@@ -27,7 +28,6 @@ def place_customer_order(db: Session, order_data: CreateOrderRequest) -> OrderCo
     Supports both single-product orders and multi-item cart orders.
     """
     # 1. Normalize items list: support both multi-item 'items' list and single-item fields
-    from app.schemas.order import OrderItemInput
     requested_items: List[OrderItemInput] = []
     if order_data.items and len(order_data.items) > 0:
         requested_items = order_data.items
@@ -278,8 +278,7 @@ def place_customer_order(db: Session, order_data: CreateOrderRequest) -> OrderCo
     )
 
 
-def get_order_invoice_data(db: Session, order: Order):
-    from app.schemas.order import InvoiceOut
+def get_order_invoice_data(db: Session, order: Order) -> InvoiceOut:
     items_out = [
         OrderItemOut(
             id=item.id,

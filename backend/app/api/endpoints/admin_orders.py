@@ -22,6 +22,7 @@ def _to_order_out(order: Order) -> OrderOut:
             id=item.id,
             product_id=item.product_id,
             product_name_snapshot=item.product_name_snapshot,
+            package_name=getattr(item, 'package_name', None),
             unit_price=item.unit_price,
             quantity=item.quantity,
             subtotal=item.subtotal
