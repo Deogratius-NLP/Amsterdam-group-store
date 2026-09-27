@@ -239,49 +239,32 @@ export default function ProductDetailsModal({
           {/* LEFT SIDE (Desktop: order-1) */}
           <div className="md:col-span-6 md:order-1 flex flex-col justify-between space-y-4">
             <div>
-              {/* Category & Stock Tag & Mode */}
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-amsterdam-muted text-amsterdam-olive-dark">
+              {/* Product Header & Sub-header */}
+              <div>
+                <h2 className="font-display font-extrabold text-2xl sm:text-3xl md:text-4xl text-amsterdam-dark tracking-tight leading-tight">
+                  {product.name}
+                </h2>
+                <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amsterdam-olive mt-1.5">
                   {product.category}
-                </span>
-
-                <span className={`text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider ${
-                  isWholesale ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  {isWholesale ? 'Wholesale Tier' : 'Retail Tier'}
-                </span>
-                
-                {isOutOfStock ? (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700">
-                    Out of Stock
-                  </span>
-                ) : isLowStock ? (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
-                    Low Stock: {maxAvailable} remaining
-                  </span>
-                ) : (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
-                    <Check className="w-3 h-3" /> In Stock ({maxAvailable} units)
-                  </span>
-                )}
+                </p>
               </div>
 
-              {/* Product Title */}
-              <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-amsterdam-dark tracking-tight leading-snug">
-                {product.name}
-              </h2>
-
               {/* Price Banner */}
-              <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
-                <span className="text-xs text-gray-400 font-semibold uppercase">
+              <div className="mt-3 flex flex-wrap items-baseline gap-2.5">
+                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">
                   {isWholesale ? 'Wholesale Unit Price:' : 'Unit Price:'}
                 </span>
-                <span className="font-display font-extrabold text-2xl text-amsterdam-dark tracking-tight">
+                <span className="font-display font-extrabold text-2xl sm:text-3xl text-amsterdam-dark tracking-tight">
                   {formatTsh(unitPrice)}
                 </span>
                 {isWholesale && (
                   <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
                     Minimum: {wholesaleMin} units
+                  </span>
+                )}
+                {isOutOfStock && (
+                  <span className="text-xs font-bold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
+                    Out of Stock
                   </span>
                 )}
               </div>
