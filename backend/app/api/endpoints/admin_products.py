@@ -32,12 +32,22 @@ def upload_product_image(
 ):
     filename = file.filename or "product_image.jpg"
     ext = os.path.splitext(filename)[1].lower()
-    allowed_exts = {".jpg", ".jpeg", ".png", ".webp", ".svg"}
+    allowed_exts = {".jpg", ".jpeg", ".png", ".webp"}
     if ext not in allowed_exts:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported format '{ext}'. Allowed formats: JPG, PNG, WEBP, SVG"
+            detail=f"Unsupported format '{ext}'. Allowed safe formats: JPG, JPEG, PNG, WEBP"
         )
+
+    # Size verification: Max 5MB to prevent disk exhaustion DoS
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+    content = file.file.read(MAX_FILE_SIZE + 1)
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds the 5MB limit."
+        )
+    file.file.seek(0)
 
     # Static destination directory
     upload_dir = Path(settings.STATIC_DIR) / "products"

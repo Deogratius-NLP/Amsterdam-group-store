@@ -36,11 +36,29 @@ def init_db(db: Session) -> None:
                 item_cols = [row[1] for row in res_items.fetchall()]
                 if item_cols and "package_name" not in item_cols:
                     conn.execute(text("ALTER TABLE order_items ADD COLUMN package_name VARCHAR(100)"))
+
+                res_orders = conn.execute(text("PRAGMA table_info(orders)"))
+                order_cols = [row[1] for row in res_orders.fetchall()]
+                if order_cols and "access_token" not in order_cols:
+                    conn.execute(text("ALTER TABLE orders ADD COLUMN access_token VARCHAR(64)"))
             else:
                 conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS instructions TEXT"))
                 conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS package_name VARCHAR(100)"))
+                conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS access_token VARCHAR(64)"))
     except Exception as e:
         logger.warning(f"Schema compatibility check skipped: {e}")
+
+    # Backfill missing order access tokens if any exist
+    try:
+        import secrets
+        orders_without_token = db.query(Order).filter(Order.access_token.is_(None)).all()
+        if orders_without_token:
+            for o in orders_without_token:
+                o.access_token = secrets.token_urlsafe(32)
+            db.commit()
+            logger.info(f"Backfilled access tokens for {len(orders_without_token)} existing orders.")
+    except Exception as e:
+        logger.warning(f"Order access_token backfill skipped: {e}")
 
     # Seed Default Settings
     wa_setting = db.query(SystemSetting).filter(SystemSetting.key == "whatsapp_number").first()

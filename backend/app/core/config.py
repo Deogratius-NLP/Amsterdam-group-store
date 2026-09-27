@@ -37,9 +37,12 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
 
-    # Static assets
     STATIC_DIR: str = "app/static"
     MEDIA_BASE_URL: str = "http://localhost:8000/static"
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.lower() == "production"
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -50,3 +53,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

@@ -132,6 +132,7 @@ def place_customer_order(db: Session, order_data: CreateOrderRequest) -> OrderCo
     total_amount = sum(vl["subtotal"] for vl in validated_lines)
 
     try:
+        import secrets
         # 4. Find or create Customer
         clean_phone = order_data.customer_phone.strip()
         customer = db.query(Customer).filter(Customer.phone == clean_phone).first()
@@ -144,21 +145,27 @@ def place_customer_order(db: Session, order_data: CreateOrderRequest) -> OrderCo
             db.add(customer)
             db.flush()
         else:
-            customer.name = order_data.customer_name.strip()
-            customer.location = order_data.customer_location.strip()
+            # Security: Protect existing customer identity from malicious overwrite.
+            # Only update attributes if previously blank.
+            if not customer.location and order_data.customer_location:
+                customer.location = order_data.customer_location.strip()
+            if not customer.name and order_data.customer_name:
+                customer.name = order_data.customer_name.strip()
             db.flush()
 
         # 5. Generate Unique Sequential Order Number
         order_number = generate_next_order_number(db)
 
-        # 6. Create Order Entity
+        # 6. Create Order Entity with Secure Access Token
+        access_token = secrets.token_urlsafe(32)
         order = Order(
             order_number=order_number,
             customer_id=customer.id,
             total_amount=total_amount,
             pricing_mode=order_pricing_mode,
             status="PENDING",
-            customer_notes=order_data.customer_notes
+            customer_notes=order_data.customer_notes,
+            access_token=access_token
         )
         db.add(order)
         db.flush()
@@ -259,9 +266,12 @@ def place_customer_order(db: Session, order_data: CreateOrderRequest) -> OrderCo
         wa_number=active_wa_number
     )
 
+    invoice_url = f"/orders/{order.order_number}/invoice?token={order.access_token}" if order.access_token else None
+
     return OrderConfirmationOut(
         id=order.id,
         order_number=order.order_number,
+        access_token=order.access_token,
         customer_id=customer.id,
         customer_name=customer.name,
         customer_phone=customer.phone,
@@ -274,7 +284,8 @@ def place_customer_order(db: Session, order_data: CreateOrderRequest) -> OrderCo
         created_at=order.created_at,
         updated_at=order.updated_at,
         whatsapp_url=wa_url,
-        whatsapp_message=plain_msg
+        whatsapp_message=plain_msg,
+        invoice_url=invoice_url
     )
 
 
@@ -293,6 +304,7 @@ def get_order_invoice_data(db: Session, order: Order) -> InvoiceOut:
     ]
     return InvoiceOut(
         order_number=order.order_number,
+        access_token=order.access_token,
         created_at=order.created_at,
         pricing_mode=order.pricing_mode or "RETAIL",
         status=order.status,

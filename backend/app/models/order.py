@@ -16,6 +16,7 @@ class Order(Base):
     status = Column(String(30), default="PENDING", nullable=False, index=True)
     # Statuses: PENDING, CONFIRMED, PROCESSING, READY, DELIVERED, CANCELLED
     customer_notes = Column(Text, nullable=True)
+    access_token = Column(String(64), unique=True, index=True, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 

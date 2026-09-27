@@ -7,11 +7,12 @@ from app.core.security import verify_password, create_access_token, get_password
 from app.models.admin_user import AdminUser
 from app.schemas.auth import LoginRequest, TokenResponse, AdminUserOut, ChangeCredentialsRequest
 from app.api.deps import get_current_admin
+from app.core.rate_limiter import limit_login
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, dependencies=[Depends(limit_login)])
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     email_clean = data.email.strip().lower()
     admin = db.query(AdminUser).filter(AdminUser.email.ilike(email_clean)).first()
@@ -74,15 +75,20 @@ def update_security_credentials(
 
     # If updating password
     if data.new_password:
-        if len(data.new_password) < 6:
+        if len(data.new_password) < 8:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="New password must be at least 6 characters long"
+                detail="New password must be at least 8 characters long."
+            )
+        if not any(c.isdigit() for c in data.new_password) or not any(c.isalpha() for c in data.new_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password must contain both letters and at least one number."
             )
         if data.confirm_password and data.new_password != data.confirm_password:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="New password and confirmation do not match"
+                detail="New password and confirmation do not match."
             )
         current_admin.hashed_password = get_password_hash(data.new_password)
 

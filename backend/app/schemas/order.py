@@ -48,6 +48,7 @@ class OrderOut(BaseModel):
     total_amount: Decimal
     status: str
     customer_notes: Optional[str] = None
+    access_token: Optional[str] = None
     items: List[OrderItemOut] = []
     created_at: datetime
     updated_at: datetime
@@ -56,12 +57,14 @@ class OrderOut(BaseModel):
 class OrderConfirmationOut(OrderOut):
     whatsapp_url: str
     whatsapp_message: str
+    invoice_url: Optional[str] = None
 
 
 class InvoiceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     order_number: str
+    access_token: Optional[str] = None
     created_at: datetime
     pricing_mode: str
     status: str

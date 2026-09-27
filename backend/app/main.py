@@ -26,6 +26,9 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
     
+    if settings.is_production and settings.SECRET_KEY == "amsterdam-super-secret-key-change-in-production-2026":
+        logger.warning("CRITICAL SECURITY WARNING: Default SECRET_KEY is active in production! Set SECRET_KEY in Railway dashboard environment variables.")
+
     yield
     # Shutdown logic (if any)
 
@@ -34,8 +37,20 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Production-ready REST API for Amsterdam Group E-Commerce Product Ordering & Admin Operations",
     version="1.0.0",
+    docs_url=None if settings.is_production else "/docs",
+    redoc_url=None if settings.is_production else "/redoc",
+    openapi_url=None if settings.is_production else "/openapi.json",
     lifespan=lifespan
 )
+
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 # CORS Middleware
 app.add_middleware(
