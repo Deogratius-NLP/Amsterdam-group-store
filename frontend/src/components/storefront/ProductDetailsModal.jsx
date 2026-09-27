@@ -286,43 +286,90 @@ export default function ProductDetailsModal({
                 )}
               </div>
 
-              {/* Package Variation Selector (e.g. 30g, 100g, 250g) */}
-              {product.packages && product.packages.length > 0 && (
-                <div className="mt-3.5 pt-3 border-t border-gray-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-gray-700">
-                      Package Size: <span className="text-amsterdam-olive-dark font-extrabold">{selectedPackage?.package_name}</span>
-                    </span>
-                    <span className="text-[11px] text-gray-400">Select package</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {product.packages.map((pkg) => {
-                      const isSelected = selectedPackage?.id === pkg.id || selectedPackage?.package_name === pkg.package_name;
-                      const pkgPrice = isWholesale ? pkg.wholesale_price : pkg.retail_price;
-                      return (
-                        <button
-                          key={pkg.id || pkg.package_name}
-                          type="button"
-                          onClick={() => setSelectedPackage(pkg)}
-                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer ${
-                            isSelected
-                              ? 'bg-amsterdam-dark text-white border-amsterdam-dark shadow-sm ring-2 ring-amsterdam-olive/20'
-                              : 'bg-[#F8FAF5] hover:bg-gray-100 text-gray-700 border-gray-200'
-                          }`}
-                        >
-                          <span>{pkg.package_name}</span>
-                          <span className={`text-[10px] font-semibold ${isSelected ? 'text-amsterdam-lime' : 'text-gray-500'}`}>
-                            {formatTsh(pkgPrice)}
+              {/* Package Variation Selector (DaisyUI-style Stepped Range Slider) */}
+              {product.packages && product.packages.length > 0 && (() => {
+                const packages = [...product.packages].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+                if (packages.length === 1) {
+                  return (
+                    <div className="mt-3.5 pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                        Package Size: <span className="text-amsterdam-dark font-extrabold">{packages[0].package_name}</span>
+                      </span>
+                      <span className="text-xs font-extrabold text-amsterdam-olive-dark">
+                        {formatTsh(unitPrice)}
+                      </span>
+                    </div>
+                  );
+                }
+
+                const selectedIndex = Math.max(0, packages.findIndex(pkg => selectedPackage && (pkg.id === selectedPackage.id || pkg.package_name === selectedPackage.package_name)));
+                const progressPercent = (selectedIndex / (packages.length - 1)) * 100;
+
+                return (
+                  <div className="mt-3.5 pt-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                        Package Size: <span className="text-amsterdam-dark font-extrabold">{packages[selectedIndex]?.package_name}</span>
+                      </span>
+                      <span className="text-xs font-extrabold text-amsterdam-olive-dark bg-amsterdam-lime/15 px-2.5 py-0.5 rounded-full border border-amsterdam-lime/30">
+                        {formatTsh(unitPrice)}
+                      </span>
+                    </div>
+
+                    <div className="w-full">
+                      <input 
+                        type="range" 
+                        min={0} 
+                        max={packages.length - 1} 
+                        value={selectedIndex} 
+                        step={1}
+                        onChange={(e) => {
+                          const idx = Number(e.target.value);
+                          if (packages[idx]) setSelectedPackage(packages[idx]);
+                        }}
+                        className="range" 
+                        style={{
+                          '--slider-bg': `linear-gradient(to right, #191C1E ${progressPercent}%, #E5E7EB ${progressPercent}%)`
+                        }}
+                        aria-label="Select package size"
+                      />
+                      <div className="flex justify-between px-2.5 mt-1.5 text-xs font-mono select-none">
+                        {packages.map((pkg, idx) => (
+                          <span 
+                            key={idx}
+                            onClick={() => setSelectedPackage(pkg)}
+                            className={`cursor-pointer transition-colors ${idx === selectedIndex ? 'text-amsterdam-dark font-bold' : 'text-gray-300 hover:text-gray-500'}`}
+                          >
+                            |
                           </span>
-                        </button>
-                      );
-                    })}
+                        ))}
+                      </div>
+                      <div className="flex justify-between px-1.5 mt-1 text-xs select-none">
+                        {packages.map((pkg, idx) => {
+                          const isSelected = idx === selectedIndex;
+                          return (
+                            <button
+                              key={pkg.id || pkg.package_name}
+                              type="button"
+                              onClick={() => setSelectedPackage(pkg)}
+                              className={`transition-all cursor-pointer text-center ${
+                                isSelected
+                                  ? 'text-amsterdam-dark font-extrabold scale-105'
+                                  : 'text-gray-500 hover:text-gray-800 font-medium'
+                              }`}
+                            >
+                              {pkg.package_name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Description */}
-              <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="mt-3.5 pt-3 border-t border-gray-100">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Description</h4>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                   {product.description || 'Formulated specifically for East African agricultural and livestock performance. Tested and certified for quality assurance.'}
@@ -330,7 +377,7 @@ export default function ProductDetailsModal({
               </div>
 
               {/* How to Use (Instructions) - Scrollable numbered steps */}
-              <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="mt-3.5 pt-3 border-t border-gray-100">
                 <div className="flex items-center justify-between mb-1.5">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-amsterdam-dark flex items-center gap-1.5">
                     <BookOpen className="w-3.5 h-3.5 text-amsterdam-olive" />
@@ -350,18 +397,6 @@ export default function ProductDetailsModal({
                       </p>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* Product Specifications & Trust Highlights */}
-              <div className="mt-3 grid grid-cols-2 gap-2.5 pt-1">
-                <div className="bg-[#F8FAF5] p-2.5 rounded-xl border border-gray-100">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 block">Guarantee</span>
-                  <span className="text-xs font-semibold text-amsterdam-dark">100% Genuine Formula</span>
-                </div>
-                <div className="bg-[#F8FAF5] p-2.5 rounded-xl border border-gray-100">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 block">Delivery</span>
-                  <span className="text-xs font-semibold text-amsterdam-dark">Tanzania-wide Delivery</span>
                 </div>
               </div>
             </div>
