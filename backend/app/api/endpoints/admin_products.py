@@ -119,12 +119,16 @@ def create_product(
     wholesale_price = data.wholesale_price or (round(price * 0.85, 2) if price else 0.0)
     wholesale_min_qty = data.wholesale_minimum_quantity or 10
 
+    raw_cats = data.animal_categories or []
+    animal_cats_str = ",".join(c.strip() for c in raw_cats if c.strip()) if isinstance(raw_cats, list) else str(raw_cats or "")
+
     product = Product(
         name=data.name,
         slug=slug,
         description=data.description,
         instructions=data.instructions,
         category=data.category,
+        animal_categories=animal_cats_str,
         price=price,
         retail_price=retail_price,
         wholesale_price=wholesale_price,
@@ -239,6 +243,13 @@ def update_product(
             created_by=admin.id
         )
         db.add(tx)
+
+    if "animal_categories" in update_fields:
+        raw_cats = update_fields.pop("animal_categories")
+        if isinstance(raw_cats, list):
+            product.animal_categories = ",".join(c.strip() for c in raw_cats if c.strip())
+        else:
+            product.animal_categories = str(raw_cats or "")
 
     for field, val in update_fields.items():
         setattr(product, field, val)

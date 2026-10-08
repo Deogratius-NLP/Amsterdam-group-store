@@ -1,4 +1,8 @@
 import api from './api';
+import { 
+  enrichProductsList, 
+  enrichProductWithAnimalCategories 
+} from '../utils/animalCategories';
 
 export const productService = {
   async getProducts({ search = '', category = '', coming_soon = false } = {}) {
@@ -8,12 +12,12 @@ export const productService = {
     if (coming_soon !== undefined) params.coming_soon = coming_soon;
 
     const response = await api.get('/products', { params });
-    return response.data;
+    return enrichProductsList(response.data);
   },
 
   async getProduct(productId) {
     const response = await api.get(`/products/${productId}`);
-    return response.data;
+    return enrichProductWithAnimalCategories(response.data);
   },
 
   async getCategories() {

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Bell, Sparkles, MessageCircle } from 'lucide-react';
-import { formatTsh } from '../../utils/currency';
 import { useSettings } from '../../context/SettingsContext';
 import { AMSTERDAM_WHATSAPP_NUMBER } from '../../utils/constants';
 
@@ -59,7 +58,7 @@ export default function ComingSoonSection({ products = [] }) {
             <span>Pipeline Innovations</span>
           </div>
           <h2 className="font-display font-extrabold text-3xl sm:text-4xl text-amsterdam-dark tracking-tight">
-            Coming Soon ...
+            In Shippment ...
           </h2>
           <p className="mt-3 text-sm sm:text-base text-gray-600 leading-relaxed font-medium">
             Our coming products, reach them before others because we care about our customers.
@@ -129,20 +128,17 @@ export default function ComingSoonSection({ products = [] }) {
 
               {/* Action Bar */}
               <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
-                <div>
-                  <span className="text-[10px] text-gray-400 font-semibold block uppercase">Target Price</span>
-                  <span className="font-display font-extrabold text-base text-amsterdam-dark">
-                    {formatTsh(activeProduct.price)}
-                  </span>
-                </div>
+                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  In Formulation & Pipeline
+                </span>
 
                 <a
                   href={`https://wa.me/${activeWaNumber}?text=${encodeURIComponent(`Hello Amsterdam Group, I am interested in pre-ordering or getting updates about ${activeProduct.name}.`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 rounded-full bg-amsterdam-olive hover:bg-amsterdam-olive-dark text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+                  className="px-5 py-2.5 rounded-full bg-amsterdam-olive hover:bg-amsterdam-olive-dark text-white text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shadow-sm"
                 >
-                  <Bell className="w-3.5 h-3.5" />
+                  <Bell className="w-4 h-4" />
                   <span>Notify Me</span>
                 </a>
               </div>

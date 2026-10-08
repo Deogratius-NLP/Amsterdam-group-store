@@ -32,6 +32,9 @@ def init_db(db: Session) -> None:
                 if cols and "instructions" not in cols:
                     conn.execute(text("ALTER TABLE products ADD COLUMN instructions TEXT"))
 
+                if cols and "animal_categories" not in cols:
+                    conn.execute(text("ALTER TABLE products ADD COLUMN animal_categories TEXT"))
+
                 res_items = conn.execute(text("PRAGMA table_info(order_items)"))
                 item_cols = [row[1] for row in res_items.fetchall()]
                 if item_cols and "package_name" not in item_cols:
@@ -43,6 +46,7 @@ def init_db(db: Session) -> None:
                     conn.execute(text("ALTER TABLE orders ADD COLUMN access_token VARCHAR(64)"))
             else:
                 conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS instructions TEXT"))
+                conn.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS animal_categories TEXT"))
                 conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS package_name VARCHAR(100)"))
                 conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS access_token VARCHAR(64)"))
     except Exception as e:

@@ -34,6 +34,7 @@ class ProductOut(BaseModel):
     description: Optional[str] = None
     instructions: Optional[str] = None
     category: str
+    animal_categories: List[str] = []
     price: Decimal
     retail_price: Decimal
     wholesale_price: Decimal
@@ -76,6 +77,7 @@ class ProductCreate(BaseModel):
     description: Optional[str] = None
     instructions: Optional[str] = None
     category: str = Field(..., min_length=2, max_length=100)
+    animal_categories: Optional[List[str]] = []
     price: Optional[Decimal] = Field(default=None, gt=0)
     retail_price: Optional[Decimal] = Field(default=None, gt=0)
     wholesale_price: Optional[Decimal] = Field(default=None, gt=0)
@@ -95,6 +97,7 @@ class ProductUpdate(BaseModel):
     description: Optional[str] = None
     instructions: Optional[str] = None
     category: Optional[str] = None
+    animal_categories: Optional[List[str]] = None
     price: Optional[Decimal] = Field(default=None, gt=0)
     retail_price: Optional[Decimal] = Field(default=None, gt=0)
     wholesale_price: Optional[Decimal] = Field(default=None, gt=0)

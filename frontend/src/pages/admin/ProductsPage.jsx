@@ -3,6 +3,7 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import { adminService } from '../../services/adminService';
 import { formatTsh } from '../../utils/currency';
 import { getProductImageUrl } from '../../utils/imageUrl';
+import { ANIMAL_CATEGORIES } from '../../utils/animalCategories';
 import { 
   Plus, 
   Search, 
@@ -143,6 +144,7 @@ export default function ProductsPage() {
     is_coming_soon: false,
     description: '',
     instructions: getDefaultInstructionsFor('', 'Feed Grade Vitamins', ''),
+    animal_categories: [],
     packages: [],
     images: [
       { image_url: '/vitamix-sample.jpg', alt_text: 'Front Pack', is_primary: true },
@@ -208,6 +210,7 @@ export default function ProductsPage() {
       is_coming_soon: false,
       description: '',
       instructions: getDefaultInstructionsFor('', 'Feed Grade Vitamins', ''),
+      animal_categories: [],
       packages: [],
       images: [
         { image_url: '/vitamix-sample.jpg', alt_text: 'Front Pack', is_primary: true },
@@ -235,6 +238,12 @@ export default function ProductsPage() {
         }))
       : [];
 
+    const existingAnimalCats = Array.isArray(prod.animal_categories)
+      ? prod.animal_categories
+      : (typeof prod.animal_categories === 'string'
+        ? prod.animal_categories.split(',').map(s => s.trim()).filter(Boolean)
+        : []);
+
     setFormData({
       name: prod.name,
       category: prod.category,
@@ -248,6 +257,7 @@ export default function ProductsPage() {
       is_coming_soon: prod.is_coming_soon,
       description: prod.description || '',
       instructions: initialInstructions,
+      animal_categories: existingAnimalCats,
       packages: existingPackages,
       images: prod.images && prod.images.length > 0 ? prod.images.map(img => ({
         image_url: img.image_url,
@@ -391,6 +401,21 @@ export default function ProductsPage() {
     setFormData({ ...formData, instructions: suggested });
   };
 
+  const toggleAnimalCategory = (catId) => {
+    const current = formData.animal_categories || [];
+    if (current.includes(catId)) {
+      setFormData({
+        ...formData,
+        animal_categories: current.filter(id => id !== catId)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        animal_categories: [...current, catId]
+      });
+    }
+  };
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
@@ -432,6 +457,7 @@ export default function ProductsPage() {
       const payload = {
         name: formData.name.trim(),
         category: formData.category.trim(),
+        animal_categories: formData.animal_categories || [],
         price: retailPrice,
         retail_price: retailPrice,
         wholesale_price: wholesalePrice,
@@ -621,9 +647,37 @@ export default function ProductsPage() {
                       </td>
 
                       <td className="py-4 px-6 text-gray-600">
-                        <span className="px-2.5 py-1 rounded-full bg-amsterdam-muted text-amsterdam-olive-dark text-[11px] font-semibold">
-                          {p.category}
-                        </span>
+                        <div className="flex flex-col gap-1.5 items-start">
+                          <span className="px-2.5 py-1 rounded-full bg-amsterdam-muted text-amsterdam-olive-dark text-[11px] font-semibold">
+                            {p.category}
+                          </span>
+                          {(() => {
+                            const rawCats = p.animal_categories;
+                            const assignedList = Array.isArray(rawCats)
+                              ? rawCats
+                              : (typeof rawCats === 'string'
+                                ? rawCats.split(',').map(s => s.trim()).filter(Boolean)
+                                : []);
+                            if (assignedList.length === 0) return null;
+                            return (
+                              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                {assignedList.map((catId) => {
+                                  const catObj = ANIMAL_CATEGORIES.find(c => c.id === catId);
+                                  return (
+                                    <span
+                                      key={catId}
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/60 text-[10px] font-medium"
+                                      title={catObj ? catObj.subtitle : catId}
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                      {catObj ? catObj.name : catId}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </td>
 
                       <td className="py-4 px-6 font-extrabold text-amsterdam-dark">
@@ -760,6 +814,73 @@ export default function ProductsPage() {
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs text-amsterdam-dark focus:outline-none focus:ring-2 focus:ring-amsterdam-olive/20 focus:border-amsterdam-olive"
                   />
+                </div>
+              </div>
+
+              {/* Animal Categories Assignment (Multi-Category Selector) */}
+              <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-xs space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <div>
+                    <label className="block text-xs font-bold text-amsterdam-dark">
+                      Target Animal Categories (Storefront Display)
+                    </label>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Choose which animal categories this product belongs to. You can select multiple categories. The product will appear <strong>only</strong> in the selected categories on the storefront.
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    {(formData.animal_categories?.length || 0) > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amsterdam-olive bg-amsterdam-muted px-2.5 py-1 rounded-full whitespace-nowrap">
+                        <Check className="w-3 h-3 stroke-[2.5]" />
+                        {formData.animal_categories.length} selected
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-gray-400 italic">
+                        None selected (keyword fallback)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  {ANIMAL_CATEGORIES.map((animal) => {
+                    const isSelected = (formData.animal_categories || []).includes(animal.id);
+                    return (
+                      <button
+                        key={animal.id}
+                        type="button"
+                        onClick={() => toggleAnimalCategory(animal.id)}
+                        className={`group relative flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? 'border-amsterdam-olive bg-amsterdam-olive/10 shadow-xs ring-1 ring-amsterdam-olive/30'
+                            : 'border-gray-200 bg-gray-50/50 hover:bg-gray-50 hover:border-gray-300'
+                        }`}
+                      >
+                        <div
+                          className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center shrink-0 transition-colors ${
+                            isSelected
+                              ? 'bg-amsterdam-olive text-white'
+                              : 'border border-gray-300 bg-white group-hover:border-gray-400'
+                          }`}
+                        >
+                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-xs font-bold text-amsterdam-dark">
+                              {animal.name}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-mono">
+                              {animal.id}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">
+                            {animal.subtitle || animal.tagline}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

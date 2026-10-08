@@ -15,6 +15,7 @@ class Product(Base):
     description = Column(Text, nullable=True)
     instructions = Column(Text, nullable=True)
     category = Column(String(100), index=True, default="Poultry Care", nullable=False)
+    animal_categories = Column(Text, nullable=True, default="")  # Comma-separated list of category IDs e.g. "hens-chickens,pigs"
     price = Column(Numeric(12, 2), nullable=False)  # e.g. 25000.00
     retail_price = Column(Numeric(12, 2), default=0.0, nullable=False)
     wholesale_price = Column(Numeric(12, 2), default=0.0, nullable=False)

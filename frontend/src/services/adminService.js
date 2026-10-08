@@ -1,4 +1,9 @@
 import api from './api';
+import { 
+  enrichProductsList, 
+  enrichProductWithAnimalCategories, 
+  saveProductAnimalCategories 
+} from '../utils/animalCategories';
 
 export const adminService = {
   // Authentication
@@ -49,22 +54,36 @@ export const adminService = {
     if (category && category !== 'All') params.category = category;
     if (is_active !== undefined) params.is_active = is_active;
     const response = await api.get('/admin/products', { params });
-    return response.data;
+    return enrichProductsList(response.data);
   },
 
   async getProduct(productId) {
     const response = await api.get(`/admin/products/${productId}`);
-    return response.data;
+    return enrichProductWithAnimalCategories(response.data);
   },
 
   async createProduct(productData) {
     const response = await api.post('/admin/products', productData);
-    return response.data;
+    if (response.data?.id && productData?.animal_categories) {
+      saveProductAnimalCategories(response.data.id, productData.animal_categories);
+    }
+    const enriched = enrichProductWithAnimalCategories(response.data);
+    if (productData?.animal_categories) {
+      enriched.animal_categories = productData.animal_categories;
+    }
+    return enriched;
   },
 
   async updateProduct(productId, productData) {
+    if (productData && productData.animal_categories !== undefined) {
+      saveProductAnimalCategories(productId, productData.animal_categories);
+    }
     const response = await api.put(`/admin/products/${productId}`, productData);
-    return response.data;
+    const enriched = enrichProductWithAnimalCategories(response.data);
+    if (productData && productData.animal_categories !== undefined) {
+      enriched.animal_categories = productData.animal_categories;
+    }
+    return enriched;
   },
 
   async deleteProduct(productId) {

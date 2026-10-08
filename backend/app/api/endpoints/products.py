@@ -37,6 +37,19 @@ def _to_product_out(p: Product) -> ProductOut:
         for pkg in sorted(p.packages, key=lambda x: x.display_order)
     ] if hasattr(p, "packages") and p.packages else []
 
+    # Parse animal_categories
+    raw_cats = getattr(p, 'animal_categories', None)
+    animal_cats_list = []
+    if raw_cats:
+        if raw_cats.startswith("["):
+            import json
+            try:
+                animal_cats_list = json.loads(raw_cats)
+            except Exception:
+                animal_cats_list = [c.strip() for c in raw_cats.split(",") if c.strip()]
+        else:
+            animal_cats_list = [c.strip() for c in raw_cats.split(",") if c.strip()]
+
     return ProductOut(
         id=p.id,
         name=p.name,
@@ -44,6 +57,7 @@ def _to_product_out(p: Product) -> ProductOut:
         description=p.description,
         instructions=getattr(p, 'instructions', None),
         category=p.category,
+        animal_categories=animal_cats_list,
         price=p.price,
         retail_price=p.retail_price if p.retail_price is not None else p.price,
         wholesale_price=p.wholesale_price if p.wholesale_price is not None else p.price,
